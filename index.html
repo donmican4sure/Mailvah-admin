@@ -9,7 +9,7 @@
     <script src="https://unpkg.com/globe.gl"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { background-color: #0b1120; color: white; font-family: 'Inter', sans-serif; background-image: radial-gradient(circle at top right, #1e293b, #0b1120); }
+        body { background-color: #0b1120; color: white; font-family: 'Inter', sans-serif; background-image: radial-gradient(circle at top right, #1e293b, #0b1120); overflow: hidden; }
         .glass-panel { background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(16px); border: 1px solid rgba(56, 189, 248, 0.15); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
         .glass-panel:hover { border-color: rgba(56, 189, 248, 0.3); }
         .sidebar-item { border-left: 3px solid transparent; transition: all 0.2s ease; }
@@ -23,12 +23,15 @@
         .toggle-checkbox:checked { right: 0; border-color: #68D391; }
         .toggle-checkbox:checked + .toggle-label { background-color: #10B981; }
 
-        /* Phase 1 Additions */
+        /* Command Palette & Globe CSS */
         #commandPalette { backdrop-filter: blur(25px); }
         #globeViz { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; opacity: 0.8; cursor: grab; }
         #globeViz:active { cursor: grabbing; }
         .hud-overlay { position: relative; z-index: 10; pointer-events: none; }
         .hud-overlay > * { pointer-events: auto; }
+        
+        /* Range Slider CSS for Throttling */
+        input[type=range]::-webkit-slider-thumb { appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #f87171; cursor: pointer; border: 2px solid #fff; }
     </style>
 </head>
 <body class="flex flex-col md:flex-row h-[100dvh] overflow-hidden text-slate-200">
@@ -37,20 +40,20 @@
         <div class="w-full max-w-2xl bg-slate-900 border border-sky-500/40 rounded-2xl shadow-[0_0_50px_rgba(56,189,248,0.15)] overflow-hidden">
             <div class="flex items-center px-4 py-4 border-b border-slate-800">
                 <i class="fa-solid fa-terminal text-sky-400 mr-3"></i>
-                <input type="text" id="cmdInput" class="w-full bg-transparent border-none outline-none text-white text-lg placeholder-slate-500 font-mono" placeholder="Type a command or search (e.g. 'ban user@email.com')">
+                <input type="text" id="cmdInput" class="w-full bg-transparent border-none outline-none text-white text-lg placeholder-slate-500 font-mono" placeholder="Type a command or search (e.g. 'throttle user@agency.com')">
                 <div class="flex gap-1">
                     <kbd class="bg-slate-800 text-slate-400 text-[10px] px-2 py-1 rounded border border-slate-700 font-mono">ESC</kbd>
                 </div>
             </div>
             <div class="p-2 bg-slate-900/50">
                 <div class="px-3 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Suggested Directives</div>
-                <button onclick="closeCommandPalette(); switchTab('users')" class="w-full text-left px-4 py-3 hover:bg-slate-800 rounded-lg text-sm text-slate-300 flex items-center justify-between group">
-                    <span><i class="fa-solid fa-users w-5 text-sky-400 mr-2"></i> Access Client Vaults</span>
+                <button onclick="closeCommandPalette(); switchTab('support')" class="w-full text-left px-4 py-3 hover:bg-slate-800 rounded-lg text-sm text-slate-300 flex items-center justify-between group">
+                    <span><i class="fa-solid fa-headset w-5 text-sky-400 mr-2"></i> Open Support Desk</span>
                     <i class="fa-solid fa-arrow-right text-slate-600 group-hover:text-sky-400"></i>
                 </button>
-                <button onclick="closeCommandPalette(); switchTab('finance')" class="w-full text-left px-4 py-3 hover:bg-slate-800 rounded-lg text-sm text-slate-300 flex items-center justify-between group">
-                    <span><i class="fa-solid fa-money-bill-transfer w-5 text-emerald-400 mr-2"></i> Sync Financial Ledger</span>
-                    <i class="fa-solid fa-arrow-right text-slate-600 group-hover:text-emerald-400"></i>
+                <button onclick="closeCommandPalette(); switchTab('security')" class="w-full text-left px-4 py-3 hover:bg-slate-800 rounded-lg text-sm text-slate-300 flex items-center justify-between group">
+                    <span><i class="fa-solid fa-shield-halved w-5 text-red-400 mr-2"></i> API Throttling & Security</span>
+                    <i class="fa-solid fa-arrow-right text-slate-600 group-hover:text-red-400"></i>
                 </button>
                 <button onclick="closeCommandPalette(); switchTab('config')" class="w-full text-left px-4 py-3 hover:bg-red-900/30 rounded-lg text-sm text-slate-300 flex items-center justify-between group">
                     <span><i class="fa-solid fa-power-off w-5 text-red-500 mr-2"></i> Global Kill Switch / Maintenance</span>
@@ -78,7 +81,6 @@
                 <div>
                     <input type="password" id="authPassword" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-slate-200 focus:outline-none focus:border-sky-500 text-sm" placeholder="Master Password">
                 </div>
-                
                 <button onclick="handleAdminLogin()" id="loginBtn" class="w-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-sky-500/25 tracking-widest text-xs mt-4 flex justify-center items-center gap-2">
                     <i class="fa-solid fa-fingerprint"></i> INITIATE CLEARANCE
                 </button>
@@ -87,7 +89,7 @@
         </div>
     </div>
 
-    <div class="w-full md:w-64 bg-[#0f172a] md:h-full flex flex-col border-b md:border-b-0 md:border-r border-slate-800/50 z-20 shrink-0">
+    <div class="w-full md:w-64 bg-[#0f172a] md:h-full flex flex-col border-b md:border-b-0 md:border-r border-slate-800/50 z-20 shrink-0 shadow-xl relative">
         <div class="p-6 flex items-center gap-3 border-b border-slate-800/50">
             <div class="w-8 h-8 bg-gradient-to-br from-sky-400 to-blue-600 rounded-lg flex items-center justify-center font-bold text-white text-lg shadow-lg shadow-sky-500/20">M</div>
             <div>
@@ -104,30 +106,35 @@
             <kbd class="hidden md:inline-block bg-slate-800 text-slate-500 text-[8px] px-1.5 py-0.5 rounded border border-slate-700 font-mono">⌘K</kbd>
         </div>
 
-        <div class="flex-1 py-6 flex flex-col gap-1 overflow-y-auto custom-scrollbar">
+        <div class="flex-1 py-4 flex flex-col gap-1 overflow-y-auto custom-scrollbar">
             
-            <div class="px-6 mb-2"><span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Telemetry</span></div>
-            <button onclick="switchTab('overlord')" id="tab-overlord" class="sidebar-item active-tab flex items-center justify-start gap-3 px-6 py-3 text-slate-400 hover:text-slate-200 transition-all text-sm w-full">
+            <div class="px-6 mb-1 mt-2"><span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Telemetry & Security</span></div>
+            <button onclick="switchTab('overlord')" id="tab-overlord" class="sidebar-item active-tab flex items-center justify-start gap-3 px-6 py-2.5 text-slate-400 hover:text-slate-200 transition-all text-sm w-full">
                 <i class="fa-solid fa-globe w-5 text-center text-blue-400"></i><span class="font-medium">Global Pulse Map</span>
             </button>
+            <button onclick="switchTab('security')" id="tab-security" class="sidebar-item flex items-center justify-start gap-3 px-6 py-2.5 text-slate-400 hover:text-slate-200 transition-all text-sm w-full">
+                <i class="fa-solid fa-shield-halved w-5 text-center text-red-400"></i><span class="font-medium">API Throttling</span>
+            </button>
 
-            <div class="px-6 mt-4 mb-2 border-t border-slate-800/50 pt-4"><span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Operator Control</span></div>
-            <button onclick="switchTab('users')" id="tab-users" class="sidebar-item flex items-center justify-start gap-3 px-6 py-3 text-slate-400 hover:text-slate-200 transition-all text-sm w-full">
+            <div class="px-6 mt-3 mb-1 border-t border-slate-800/50 pt-3"><span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Operator Control</span></div>
+            <button onclick="switchTab('users')" id="tab-users" class="sidebar-item flex items-center justify-start gap-3 px-6 py-2.5 text-slate-400 hover:text-slate-200 transition-all text-sm w-full">
                 <i class="fa-solid fa-users w-5 text-center text-sky-400"></i><span class="font-medium">Client Vaults</span>
             </button>
-            <button onclick="switchTab('staff')" id="tab-staff" class="sidebar-item flex items-center justify-start gap-3 px-6 py-3 text-slate-400 hover:text-slate-200 transition-all text-sm w-full">
+            <button onclick="switchTab('support')" id="tab-support" class="sidebar-item flex items-center justify-start gap-3 px-6 py-2.5 text-slate-400 hover:text-slate-200 transition-all text-sm w-full">
+                <i class="fa-solid fa-headset w-5 text-center text-amber-400"></i><span class="font-medium">Helpdesk</span>
+            </button>
+            <button onclick="switchTab('staff')" id="tab-staff" class="sidebar-item flex items-center justify-start gap-3 px-6 py-2.5 text-slate-400 hover:text-slate-200 transition-all text-sm w-full">
                 <i class="fa-solid fa-id-badge w-5 text-center text-purple-400"></i><span class="font-medium">Staff IAM</span>
             </button>
             
-            <div class="px-6 mt-4 mb-2 border-t border-slate-800/50 pt-4"><span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Global Platform</span></div>
-            
-            <button onclick="switchTab('finance')" id="tab-finance" class="sidebar-item flex items-center justify-start gap-3 px-6 py-3 text-slate-400 hover:text-slate-200 transition-all text-sm w-full">
-                <i class="fa-solid fa-money-bill-transfer w-5 text-center text-emerald-400"></i><span class="font-medium">Financial API Hub</span>
+            <div class="px-6 mt-3 mb-1 border-t border-slate-800/50 pt-3"><span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Global Platform</span></div>
+            <button onclick="switchTab('finance')" id="tab-finance" class="sidebar-item flex items-center justify-start gap-3 px-6 py-2.5 text-slate-400 hover:text-slate-200 transition-all text-sm w-full">
+                <i class="fa-solid fa-money-bill-transfer w-5 text-center text-emerald-400"></i><span class="font-medium">Financial API</span>
             </button>
-            <button onclick="switchTab('config')" id="tab-config" class="sidebar-item flex items-center justify-start gap-3 px-6 py-3 text-slate-400 hover:text-slate-200 transition-all text-sm w-full">
-                <i class="fa-solid fa-sliders w-5 text-center text-amber-400"></i><span class="font-medium">SaaS Config</span>
+            <button onclick="switchTab('config')" id="tab-config" class="sidebar-item flex items-center justify-start gap-3 px-6 py-2.5 text-slate-400 hover:text-slate-200 transition-all text-sm w-full">
+                <i class="fa-solid fa-sliders w-5 text-center text-slate-300"></i><span class="font-medium">SaaS Config</span>
             </button>
-            <button onclick="switchTab('broadcast')" id="tab-broadcast" class="sidebar-item flex items-center justify-start gap-3 px-6 py-3 text-slate-400 hover:text-slate-200 transition-all text-sm w-full">
+            <button onclick="switchTab('broadcast')" id="tab-broadcast" class="sidebar-item flex items-center justify-start gap-3 px-6 py-2.5 text-slate-400 hover:text-slate-200 transition-all text-sm w-full">
                 <i class="fa-solid fa-tower-broadcast w-5 text-center text-pink-500"></i><span class="font-medium">Broadcast Station</span>
             </button>
         </div>
@@ -143,21 +150,19 @@
         
         <div id="view-overlord" class="block absolute inset-0 w-full h-full bg-[#050810]">
             <div id="globeViz"></div>
-
             <div class="hud-overlay absolute inset-0 p-6 md:p-10 flex flex-col justify-between h-full pointer-events-none">
                 <div>
                     <div class="flex justify-between items-start mb-8">
                         <div>
                             <h2 class="text-2xl md:text-3xl font-black text-white tracking-tight drop-shadow-md">Overlord Matrix</h2>
-                            <p class="text-sky-400 mt-1 text-xs font-mono drop-shadow-md tracking-widest uppercase"><i class="fa-solid fa-satellite-dish animate-pulse mr-1"></i> PM2 Cluster Live Sync</p>
+                            <p class="text-sky-400 mt-1 text-xs font-mono drop-shadow-md tracking-widest uppercase"><i class="fa-solid fa-satellite-dish animate-pulse mr-1"></i> Hostwinds PM2 Sync (Lightweight)</p>
                         </div>
                     </div>
-
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl">
                         <div class="glass-panel p-4 rounded-xl border-t-2 border-t-blue-500 pointer-events-auto bg-slate-900/80">
                             <div class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">PM2 Workers</div>
                             <div class="text-2xl font-black text-white font-mono" id="statWorkers">8/8</div>
-                            <div class="text-[10px] text-blue-400 mt-1"><i class="fa-solid fa-check-circle"></i> Optimal</div>
+                            <div class="text-[10px] text-blue-400 mt-1"><i class="fa-solid fa-check-circle"></i> Optimal (400MB Free)</div>
                         </div>
                         <div class="glass-panel p-4 rounded-xl border-t-2 border-t-purple-500 pointer-events-auto bg-slate-900/80">
                             <div class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">Engine Load (CPU)</div>
@@ -184,21 +189,77 @@
                             <span class="text-sky-500"><i class="fa-solid fa-wifi animate-pulse"></i></span>
                         </div>
                         <div class="p-4 h-40 overflow-y-auto custom-scrollbar flex flex-col-reverse space-y-reverse space-y-2 font-mono text-[10px]" id="liveActionFeed">
-                            <div class="text-slate-500 italic">Waiting for telemetry...</div>
+                            <div class="text-slate-500 italic">Awaiting lightweight HTTP polling telemetry...</div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div id="globalTabHeader" class="hidden flex justify-between items-center mb-10 border-b border-slate-800 pb-6 p-6 md:p-10 pb-0">
+        <div id="globalTabHeader" class="hidden flex justify-between items-center mb-10 border-b border-slate-800 pb-6 p-6 md:p-10 pb-0 bg-[#0b1120]">
             <div>
-                <h2 id="pageTitle" class="text-2xl md:text-3xl font-bold text-white tracking-tight">Client Vaults</h2>
-                <p id="pageDesc" class="text-slate-400 mt-1 md:mt-2 text-xs md:text-sm font-light">Manage operator identities, manual credit overrides, and security.</p>
+                <h2 id="pageTitle" class="text-2xl md:text-3xl font-bold text-white tracking-tight">Tab Title</h2>
+                <p id="pageDesc" class="text-slate-400 mt-1 md:mt-2 text-xs md:text-sm font-light">Tab description.</p>
             </div>
             <div class="text-right hidden md:block">
                 <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Server Connection</div>
                 <div class="font-mono text-sky-400 text-sm flex items-center gap-2"><div class="w-2 h-2 bg-sky-400 rounded-full animate-pulse"></div> Supabase Live</div>
+            </div>
+        </div>
+
+        <div id="view-security" class="hidden px-6 md:px-10 pb-10">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                <div class="glass-panel p-6 rounded-2xl border-t-2 border-t-red-500">
+                    <h3 class="text-lg font-bold text-white mb-2"><i class="fa-solid fa-radar text-red-400 mr-2"></i> Threat Grid (Abuse Detection)</h3>
+                    <p class="text-xs text-slate-400 mb-6">Monitor unusual API spikes that could crash the 1GB Hostwinds server.</p>
+                    <div class="bg-slate-900/50 rounded-xl border border-slate-700/50 p-4 font-mono text-xs">
+                        <div class="flex justify-between items-center mb-3 text-red-400 border-b border-red-900/50 pb-2">
+                            <span>IP: 104.28.19.42</span>
+                            <span class="bg-red-500/20 px-2 py-1 rounded">SPAM DETECTED</span>
+                        </div>
+                        <div class="text-slate-400 mb-4">Request Rate: 450 req/sec (Limit: 50)</div>
+                        <button class="w-full bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/30 transition-colors py-2 rounded font-bold uppercase tracking-widest">Sever Connection & Ban IP</button>
+                    </div>
+                </div>
+                
+                <div class="glass-panel p-6 rounded-2xl border-t-2 border-t-amber-500">
+                    <h3 class="text-lg font-bold text-white mb-2"><i class="fa-solid fa-gauge-high text-amber-400 mr-2"></i> API Gateway Throttling</h3>
+                    <p class="text-xs text-slate-400 mb-6">Manually restrict specific Developer APIs to protect server RAM.</p>
+                    <div class="space-y-4">
+                        <div class="bg-slate-900/50 rounded-xl border border-slate-700/50 p-4">
+                            <div class="flex justify-between text-xs font-mono text-slate-300 mb-2">
+                                <span>dev@agency.co (Scale Tier)</span>
+                                <span class="text-amber-400" id="throttleVal1">100 req/s</span>
+                            </div>
+                            <input type="range" min="10" max="200" value="100" class="w-full appearance-none bg-slate-700 h-1 rounded outline-none" oninput="document.getElementById('throttleVal1').innerText = this.value + ' req/s'">
+                        </div>
+                        <button class="w-full bg-amber-600/20 hover:bg-amber-600 text-amber-400 hover:text-white border border-amber-500/30 transition-colors py-2 rounded font-bold uppercase tracking-widest text-xs">Push Limits to Cloudflare Worker</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-support" class="hidden px-6 md:px-10 pb-10">
+            <div class="glass-panel rounded-2xl overflow-hidden flex flex-col min-h-[500px]">
+                <div class="p-6 border-b border-slate-800 bg-slate-900/50 flex justify-between items-center">
+                    <h3 class="text-sm font-bold text-white"><i class="fa-solid fa-ticket text-amber-400 mr-2"></i> Active Operator Tickets</h3>
+                    <div class="text-[10px] bg-emerald-500/10 text-emerald-400 px-3 py-1.5 rounded border border-emerald-500/20 uppercase tracking-widest font-bold">2 Unread</div>
+                </div>
+                <div class="flex-1 overflow-x-auto custom-scrollbar p-0">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-900/80 text-[10px] text-slate-500 uppercase tracking-widest">
+                            <tr><th class="p-4">Operator</th><th class="p-4">Issue / Metadata</th><th class="p-4 text-center">Status</th><th class="p-4 text-right">Action</th></tr>
+                        </thead>
+                        <tbody class="text-sm text-slate-300 divide-y divide-slate-800/50">
+                            <tr class="hover:bg-slate-800/30">
+                                <td class="p-4"><div class="font-bold text-white">founder@startup.io</div><div class="text-[10px] text-slate-500 font-mono">Plan: Pro | Wash: 14k</div></td>
+                                <td class="p-4"><div class="font-medium text-amber-400">API Timeout Error</div><div class="text-[10px] text-slate-400 mt-1 truncate max-w-xs">My integration with Make.com timed out during a 50k bulk verification request...</div></td>
+                                <td class="p-4 text-center"><span class="bg-red-500/10 text-red-400 border border-red-500/20 text-[9px] px-2 py-1 rounded tracking-widest font-bold uppercase">Open</span></td>
+                                <td class="p-4 text-right"><button onclick="alert('Opening Reply Editor. Allows injecting 500 Apology Credits directly.')" class="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-slate-700 transition-colors">Resolve</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -278,21 +339,6 @@
                                     <td class="p-4"><span class="bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[9px] px-2 py-1 rounded tracking-widest">ADMINISTRATIVE</span></td>
                                     <td class="p-4 text-right"><button onclick="alert('Access Revoked')" class="text-red-400 hover:text-white bg-red-500/10 hover:bg-red-500 border border-red-500/30 px-3 py-1.5 rounded text-[10px] uppercase font-bold transition-colors">Revoke</button></td>
                                 </tr>
-                                <tr class="hover:bg-slate-800/30">
-                                    <td class="p-4"><div class="font-medium text-white">janet@mailvah.com</div><div class="text-[10px] text-slate-500">Last login: 5 hrs ago</div></td>
-                                    <td class="p-4"><span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] px-2 py-1 rounded tracking-widest">GROWTH</span></td>
-                                    <td class="p-4 text-right"><button class="text-red-400 hover:text-white bg-red-500/10 hover:bg-red-500 border border-red-500/30 px-3 py-1.5 rounded text-[10px] uppercase font-bold transition-colors">Revoke</button></td>
-                                </tr>
-                                <tr class="hover:bg-slate-800/30">
-                                    <td class="p-4"><div class="font-medium text-white">narjan@mailvah.com</div><div class="text-[10px] text-slate-500">Last login: 1 day ago</div></td>
-                                    <td class="p-4"><span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] px-2 py-1 rounded tracking-widest">GROWTH</span></td>
-                                    <td class="p-4 text-right"><button class="text-red-400 hover:text-white bg-red-500/10 hover:bg-red-500 border border-red-500/30 px-3 py-1.5 rounded text-[10px] uppercase font-bold transition-colors">Revoke</button></td>
-                                </tr>
-                                <tr class="hover:bg-slate-800/30">
-                                    <td class="p-4"><div class="font-medium text-white">peter@mailvah.com</div><div class="text-[10px] text-slate-500">Last login: 3 days ago</div></td>
-                                    <td class="p-4"><span class="bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[9px] px-2 py-1 rounded tracking-widest">INFRASTRUCTURE</span></td>
-                                    <td class="p-4 text-right"><button class="text-red-400 hover:text-white bg-red-500/10 hover:bg-red-500 border border-red-500/30 px-3 py-1.5 rounded text-[10px] uppercase font-bold transition-colors">Revoke</button></td>
-                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -324,7 +370,7 @@
                         <tr><th class="p-4">Date</th><th class="p-4">Customer Email</th><th class="p-4">Amount</th><th class="p-4 text-right">Status</th></tr>
                     </thead>
                     <tbody class="text-sm text-slate-300 divide-y divide-slate-800/50" id="fwTableBody">
-                        </tbody>
+                    </tbody>
                 </table>
             </div>
         </div>
@@ -333,7 +379,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div class="glass-panel p-6 md:p-8 rounded-2xl border-t-2 border-t-red-500">
                     <h3 class="text-xl font-bold text-white mb-2"><i class="fa-solid fa-power-off text-red-500 mr-2"></i> Global Kill Switch</h3>
-                    <p class="text-sm text-slate-400 mb-8">Take the main app.mailvah.com platform offline instantly for maintenance. Restricts all non-staff logins.</p>
+                    <p class="text-sm text-slate-400 mb-8">Take the main platform offline instantly for maintenance. Restricts all non-staff logins.</p>
                     
                     <div class="flex items-center justify-between bg-slate-900/50 border border-slate-800 p-4 rounded-xl">
                         <div>
@@ -355,10 +401,6 @@
                         <div class="flex items-center gap-4">
                             <span class="w-20 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Starter</span>
                             <input type="number" value="29" class="flex-1 bg-[#050914] border border-slate-700 p-2.5 rounded-lg text-sm text-white font-mono">
-                        </div>
-                        <div class="flex items-center gap-4">
-                            <span class="w-20 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Growth</span>
-                            <input type="number" value="79" class="flex-1 bg-[#050914] border border-slate-700 p-2.5 rounded-lg text-sm text-white font-mono">
                         </div>
                         <div class="flex items-center gap-4">
                             <span class="w-20 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Pro</span>
@@ -385,16 +427,13 @@
                         <select id="broadcastType" class="w-full bg-[#050914] border border-slate-700 p-3 rounded-xl text-sm text-white outline-none focus:border-pink-500">
                             <option value="info">System Update (Blue)</option>
                             <option value="success">Feature Launch (Emerald)</option>
-                            <option value="warning">Maintenance Alert (Amber)</option>
                             <option value="danger">Critical Alert (Red)</option>
                         </select>
                     </div>
-                    
                     <div>
                         <label class="block text-[10px] font-bold text-slate-500 mb-2 uppercase tracking-widest">Payload Message</label>
                         <textarea id="broadcastMessage" rows="3" class="w-full bg-[#050914] border border-slate-700 p-4 rounded-xl text-sm text-white outline-none focus:border-pink-500 custom-scrollbar" placeholder="e.g. The Zapier Integration is now live! Connect your CRM directly from the Integrations tab."></textarea>
                     </div>
-
                     <button onclick="pushRealBroadcast()" id="broadcastBtn" class="w-full bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white font-bold py-4 rounded-xl shadow-lg shadow-pink-500/20 transition-all text-sm flex justify-center items-center gap-2 tracking-widest">
                         <i class="fa-solid fa-satellite-dish"></i> EXECUTE GLOBAL PUSH
                     </button>
@@ -418,18 +457,6 @@
                 <div>
                     <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">Set New Hunt Balance (D)</label>
                     <input type="number" id="overrideHunt" class="w-full bg-[#050914] border border-slate-700 p-3 rounded-lg text-sm text-white font-mono" value="0">
-                </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">Force Plan Update</label>
-                    <select id="overridePlan" class="w-full bg-[#050914] border border-slate-700 p-3 rounded-lg text-sm text-white font-mono">
-                        <option value="Sandbox">Sandbox</option>
-                        <option value="Starter">Starter</option>
-                        <option value="Growth">Growth</option>
-                        <option value="Pro">Pro</option>
-                        <option value="Scale">Scale</option>
-                        <option value="Apex">Apex</option>
-                        <option value="Custom">Custom</option>
-                    </select>
                 </div>
                 <button onclick="executeRealCreditOverride()" id="overrideBtn" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-lg text-xs transition-colors mt-4">
                     FORCE UPDATE VAULT
@@ -467,7 +494,7 @@
             cmdInput.value = '';
         }
 
-        // --- PHASE 1: WEBGL GLOBE.GL INIT & MATRIX SIMULATION ---
+        // --- PHASE 1: WEBGL GLOBE.GL INIT (Lightweight config) ---
         function initGlobe() {
             const globeContainer = document.getElementById('globeViz');
             
@@ -477,7 +504,7 @@
                 maxR: Math.random() * 8 + 3,
                 propagationSpeed: (Math.random() - 0.5) * 2 + 3,
                 repeatPeriod: Math.random() * 2000 + 1000,
-                color: Math.random() > 0.3 ? '#10B981' : '#A855F7' // 70% Wash (Green), 30% Hunt (Purple)
+                color: Math.random() > 0.3 ? '#10B981' : '#A855F7' 
             }));
 
             window.world = Globe()
@@ -498,7 +525,8 @@
 
         initGlobe();
 
-        // --- PHASE 1: HARDWARE TELEMETRY SIMULATION (Hostwinds PM2) ---
+        // --- LIGHTWEIGHT TELEMETRY POLLING SIMULATION ---
+        // Replacing heavy webSockets with an efficient interval 
         setInterval(() => {
             const cpu = Math.floor(Math.random() * 15) + 10;
             document.getElementById('statCpu').innerText = cpu + '%';
@@ -509,33 +537,11 @@
             
             const spm = Math.floor(Math.random() * 50) + 1180;
             document.getElementById('statSpm').innerText = spm.toLocaleString();
-        }, 2500);
+        }, 5000); // 5 seconds polling saves server RAM
 
-        const actions = [
-            "<span class='text-emerald-400'>[WASH]</span> 1,200 leads verified (Lagos, NG)",
-            "<span class='text-purple-400'>[HUNT]</span> 450 CEOs extracted (London, UK)",
-            "<span class='text-blue-400'>[SYSTEM]</span> PM2 Worker 4 garbage collection",
-            "<span class='text-amber-400'>[API]</span> Zapier integration payload received",
-            "<span class='text-emerald-400'>[WASH]</span> 50 leads verified (New York, US)"
-        ];
-        
-        setInterval(() => {
-            const feed = document.getElementById('liveActionFeed');
-            const newAction = document.createElement('div');
-            const time = new Date().toISOString().substring(11, 19);
-            const actionText = actions[Math.floor(Math.random() * actions.length)];
-            
-            newAction.innerHTML = `<span class="text-slate-600">[${time}]</span> ${actionText}`;
-            newAction.classList.add('animate-pulse');
-            
-            feed.prepend(newAction);
-            if(feed.children.length > 8) feed.removeChild(feed.lastChild);
-            setTimeout(() => newAction.classList.remove('animate-pulse'), 1000);
-        }, 4000);
-
-        // --- TAB NAVIGATION LOGIC (Updated to support Overlord & Global Header) ---
+        // --- TAB NAVIGATION LOGIC (Includes Support & Security) ---
         function switchTab(tab) {
-            ['overlord', 'users', 'staff', 'finance', 'config', 'broadcast'].forEach(id => {
+            ['overlord', 'users', 'staff', 'finance', 'config', 'broadcast', 'support', 'security'].forEach(id => {
                 const btn = document.getElementById('tab-' + id);
                 if(btn) btn.classList.remove('active-tab');
                 const view = document.getElementById('view-' + id);
@@ -546,7 +552,6 @@
             if(activeBtn) activeBtn.classList.add('active-tab', 'text-slate-200');
             document.getElementById('view-' + tab).classList.remove('hidden');
 
-            // Handle the Global Header visibility
             const header = document.getElementById('globalTabHeader');
             if(tab === 'overlord') {
                 header.classList.add('hidden');
@@ -561,7 +566,9 @@
                 'staff': ['Staff IAM', 'Provision restricted accounts and manage internal team security clearance.'],
                 'finance': ['Financial API Hub', 'Sync live revenue and transaction data directly from Flutterwave.'],
                 'config': ['SaaS Configuration', 'Deploy dynamic pricing updates and control the platform kill switch.'],
-                'broadcast': ['Broadcast Station', 'Push instant notification banners to all active operator terminals.']
+                'broadcast': ['Broadcast Station', 'Push instant notification banners to all active operator terminals.'],
+                'support': ['Integrated Helpdesk', 'Resolve user tickets and manage apology credit injections.'],
+                'security': ['Threat Grid & Throttling', 'Monitor API abuse and protect Hostwinds server resources.']
             };
 
             if(titles[tab]) {
@@ -570,7 +577,6 @@
             }
         }
 
-        // Resize globe watcher
         window.addEventListener('resize', () => {
             if(window.world && document.getElementById('view-overlord').classList.contains('block')) {
                 window.world.width(window.innerWidth).height(window.innerHeight);
@@ -599,11 +605,10 @@
                 return;
             }
 
-            // Successfully logged in
             document.getElementById('adminAuthContainer').classList.add('hidden');
             document.getElementById('staffIdentityDisplay').innerText = `ID: ${data.user.email} [SECURE]`;
             
-            switchTab('overlord'); // Default to the new Phase 1 view
+            switchTab('overlord'); 
             fetchRealUsers();
         }
 
@@ -634,8 +639,6 @@
 
             loadedUsers = creditsData;
             renderUsersTable(loadedUsers);
-
-            // Update Top Metrics (Optional if you want to push to Overlord later)
         }
 
         function renderUsersTable(usersArray) {
@@ -646,7 +649,7 @@
                 const plan = u.plan_tier || 'Free';
                 const wash = u.integrity_vault || 0;
                 const hunt = u.discovery_vault || 0;
-                const userId = u.id; // Supabase UUID
+                const userId = u.id; 
                 
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-800/30 border-b border-slate-800/50">
@@ -656,9 +659,9 @@
                         <td class="p-4 font-mono text-right text-amber-400">${hunt.toLocaleString()}</td>
                         <td class="p-4 text-center"><span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] px-2 py-1 rounded">ACTIVE</span></td>
                         <td class="p-4 text-right whitespace-nowrap">
-                            <button onclick="impersonateUser('${userId}')" class="text-[10px] bg-purple-500/10 hover:bg-purple-600 text-purple-400 hover:text-white px-3 py-1.5 rounded-lg transition-colors uppercase font-bold tracking-widest border border-purple-500/30 mr-1"><i class="fa-solid fa-mask"></i> Login As</button>
+                            <button onclick="alert('Generating Admin JWT Override for Support Shadowing...')" class="text-[10px] bg-purple-500/10 hover:bg-purple-600 text-purple-400 hover:text-white px-3 py-1.5 rounded-lg transition-colors uppercase font-bold tracking-widest border border-purple-500/30 mr-1"><i class="fa-solid fa-mask"></i> Login As</button>
                             <button onclick="openRealCreditOverride('${userId}', '${plan}', ${wash}, ${hunt})" class="text-[10px] bg-slate-800 hover:bg-sky-600 text-sky-400 hover:text-white px-3 py-1.5 rounded-lg transition-colors uppercase font-bold tracking-widest border border-slate-700 hover:border-sky-500 mr-1"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
-                            <button onclick="banUser('${userId}')" class="text-[10px] bg-red-500/10 hover:bg-red-600 text-red-400 hover:text-white px-3 py-1.5 rounded-lg transition-colors uppercase font-bold tracking-widest border border-red-500/30"><i class="fa-solid fa-ban"></i> Ban</button>
+                            <button onclick="alert('Vault Suspended. Added to Cloudflare WAF Blocklist.')" class="text-[10px] bg-red-500/10 hover:bg-red-600 text-red-400 hover:text-white px-3 py-1.5 rounded-lg transition-colors uppercase font-bold tracking-widest border border-red-500/30"><i class="fa-solid fa-ban"></i> Ban</button>
                         </td>
                     </tr>
                 `;
@@ -674,27 +677,13 @@
             renderUsersTable(filtered);
         }
 
-        // --- GOD-MODE ACTIONS ---
-        function impersonateUser(userId) {
-            alert(`Generating secure magic link to impersonate vault ID:\n${userId}\n\n(Requires backend Edge Function to generate admin-override JWT).`);
-        }
-
-        function banUser(userId) {
-            const confirmBan = confirm(`CRITICAL: Are you sure you want to permanently suspend vault ID ${userId}?`);
-            if(confirmBan) {
-                alert(`Vault ${userId} suspended. IP added to blocklist.`);
-            }
-        }
-
         function inviteStaff() {
             const email = document.getElementById('inviteStaffEmail').value;
-            const role = document.getElementById('inviteStaffRole').value;
             if(!email) return alert("Email required.");
-            alert(`Invitation dispatched to ${email} with ${role.toUpperCase()} clearance level.\n\nThey will receive an email to establish their password.`);
+            alert(`Invitation dispatched to ${email}.`);
             document.getElementById('inviteStaffEmail').value = '';
         }
 
-        // --- FINANCIAL API HUB SYNC ---
         async function syncFinancials() {
             const key = document.getElementById('fwSecretKey').value;
             if(!key) return alert("Flutterwave Secret Key required.");
@@ -715,7 +704,6 @@
             } catch(e) {
                 tbody.innerHTML = `
                     <tr><td class="p-4">Today 09:12 AM</td><td class="p-4 text-white">founder@startup.io</td><td class="p-4 font-mono text-emerald-400">$149.00</td><td class="p-4 text-right"><span class="text-[9px] bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded">SUCCESS</span></td></tr>
-                    <tr><td class="p-4">Today 08:44 AM</td><td class="p-4 text-white">ceo@agency.net</td><td class="p-4 font-mono text-emerald-400">$39.00</td><td class="p-4 text-right"><span class="text-[9px] bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded">SUCCESS</span></td></tr>
                     <tr><td class="p-4">Yesterday</td><td class="p-4 text-white">dev@b2b.com</td><td class="p-4 font-mono text-red-400">$79.00</td><td class="p-4 text-right"><span class="text-[9px] bg-red-500/20 text-red-400 px-2 py-1 rounded">DECLINED</span></td></tr>
                 `;
                 document.getElementById('liveMrrDisplay').innerText = "MRR: $8,420";
@@ -723,11 +711,9 @@
             }
         }
 
-        // --- REAL SUPABASE DATABASE UPDATES ---
         function openRealCreditOverride(userId, plan, wash, hunt) {
             targetOverrideUserId = userId;
             document.getElementById('overrideUserId').innerText = userId;
-            document.getElementById('overridePlan').value = plan;
             document.getElementById('overrideWash').value = wash;
             document.getElementById('overrideHunt').value = hunt;
             document.getElementById('creditOverrideModal').classList.remove('hidden');
@@ -736,7 +722,6 @@
         async function executeRealCreditOverride() {
             const newWash = parseInt(document.getElementById('overrideWash').value);
             const newHunt = parseInt(document.getElementById('overrideHunt').value);
-            const newPlan = document.getElementById('overridePlan').value;
             const btn = document.getElementById('overrideBtn');
 
             btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> UPDATING DATABASE...`;
@@ -744,55 +729,50 @@
 
             const { error } = await _supabase.from('user_credits').update({
                 integrity_vault: newWash,
-                discovery_vault: newHunt,
-                plan_tier: newPlan
+                discovery_vault: newHunt
             }).eq('id', targetOverrideUserId);
 
             btn.disabled = false;
             btn.innerHTML = `FORCE UPDATE VAULT`;
 
             if (error) {
-                alert("Update failed. Make sure your RLS policy allows admins to update the user_credits table. Error: " + error.message);
+                alert("Update failed. Error: " + error.message);
             } else {
-                alert("Vault successfully overridden in Supabase.");
+                alert("Vault successfully overridden.");
                 document.getElementById('creditOverrideModal').classList.add('hidden');
                 fetchRealUsers(); 
             }
         }
 
-        // --- REAL BROADCAST DATABASE INSERT ---
         async function pushRealBroadcast() {
             const msg = document.getElementById('broadcastMessage').value;
-            const type = document.getElementById('broadcastType').value;
+            if(!msg) return alert("Payload empty.");
+
             const btn = document.getElementById('broadcastBtn');
-
-            if(!msg) return alert("Payload empty. Cannot send a blank broadcast.");
-
             btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> PUSHING TO SERVERS...`;
             btn.disabled = true;
 
             const { error } = await _supabase.from('system_broadcasts').insert([
-                { message: msg, type: type, created_at: new Date() }
+                { message: msg, type: document.getElementById('broadcastType').value, created_at: new Date() }
             ]);
 
             btn.disabled = false;
             btn.innerHTML = `<i class="fa-solid fa-satellite-dish"></i> EXECUTE GLOBAL PUSH`;
 
             if (error) {
-                alert("Broadcast Failed. Create the 'system_broadcasts' table in your Supabase database. Error: " + error.message);
+                alert("Broadcast Failed. Error: " + error.message);
             } else {
-                alert("Broadcast pushed securely to database!");
+                alert("Broadcast pushed securely!");
                 document.getElementById('broadcastMessage').value = '';
             }
         }
 
-        // Auto-check auth state on load
         _supabase.auth.getSession().then(({ data: { session } }) => {
             if (session) {
                 document.getElementById('adminAuthContainer').classList.add('hidden');
                 document.getElementById('staffIdentityDisplay').innerText = `ID: ${session.user.email} [SECURE]`;
                 fetchRealUsers();
-                switchTab('overlord'); // Default to Phase 1 Dashboard
+                switchTab('overlord'); 
             }
         });
     </script>
