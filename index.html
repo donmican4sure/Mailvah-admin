@@ -587,11 +587,11 @@
 
         initGlobe();
 
-        // --- LIVE HOSTWINDS TELEMETRY POLLING ---
+        // --- LIVE HOSTWINDS TELEMETRY POLLING VIA NGINX API WRAPPER ---
         setInterval(async () => {
             try {
-                // RESTORED YOUR EXACT HOSTWINDS IP
-                const response = await fetch('https://pulse.mailvah.com:2053/api/sys-pulse', {
+                // ENTERPRISE API WRAPPER 
+                const response = await fetch('https://pulse.mailvah.com/api/sys-pulse', {
                     headers: { 'Authorization': 'Bearer MAILVAH_GOD_KEY_2026' }
                 });
                 
