@@ -590,8 +590,8 @@
         // --- LIVE HOSTWINDS TELEMETRY POLLING ---
         setInterval(async () => {
             try {
-                // REPLACE THIS IP WITH YOUR ACTUAL HOSTWINDS SERVER IP FROM YOUR EMAIL
-                const response = await fetch('23.254.167.175', {
+                // HARDCODED HOSTWINDS MAIN IP
+                const response = await fetch('http://23.254.167.175:9090/api/sys-pulse', {
                     headers: { 'Authorization': 'Bearer MAILVAH_GOD_KEY_2026' }
                 });
                 
