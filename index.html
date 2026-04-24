@@ -542,7 +542,6 @@
         let loadedUsers = [];
         let targetOverrideUserId = null;
 
-        // --- MOBILE SIDEBAR LOGIC ---
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebarOverlay');
@@ -550,7 +549,6 @@
             overlay.classList.toggle('hidden');
         }
 
-        // --- PHASE 1: OMNI-COMMAND PALETTE (Cmd+K) ---
         const palette = document.getElementById('commandPalette');
         const cmdInput = document.getElementById('cmdInput');
 
@@ -570,7 +568,6 @@
             cmdInput.value = '';
         }
 
-        // --- PHASE 2: HYBRID WEBGL GLOBE INIT ---
         let arcData = [];
         
         function initGlobe() {
@@ -583,7 +580,7 @@
                 .arcDashLength(0.4)
                 .arcDashGap(0.2)
                 .arcDashInitialGap(() => Math.random())
-                .arcDashAnimateTime(1500) // Speed of the glowing beam
+                .arcDashAnimateTime(1500) 
                 .arcsData(arcData)
                 .pointOfView({ lat: 20, lng: 0, altitude: 2.2 }); 
                 
@@ -593,7 +590,6 @@
         }
         initGlobe();
 
-        // --- PHASE 3: WEBSOCKET LIVE STREAM WITH ARC MAPPING ---
         const socket = io('https://pulse.mailvah.com'); 
         const feed = document.getElementById('liveActionFeed');
 
@@ -611,44 +607,45 @@
             const waitingText = document.getElementById('feedWaiting');
             if (waitingText) waitingText.remove();
 
-            // Setup styling
             let textColor = 'text-emerald-300';
             let borderColor = 'border-emerald-500';
             let arcBeamColor = ['#10B981', '#34D399']; // Green gradient for safe
+            let drawArc = false;
 
-            if(logText.includes('FATAL') || logText.includes('BOUNCE') || logText.includes('NOT exist') || logText.includes('[-]')) {
+            // GOD MODE: Catches both your custom scripts AND your bulk processor [ DEAD ] / [ SAFE ] tags
+            if(logText.includes('FATAL') || logText.includes('BOUNCE') || logText.includes('NOT exist') || logText.includes('[-]') || logText.includes('DEAD')) {
                 textColor = 'text-red-400';
                 borderColor = 'border-red-500';
-                arcBeamColor = ['#EF4444', '#F87171']; // Red gradient for bounce
+                arcBeamColor = ['#EF4444', '#F87171']; // Red
+                drawArc = true;
+            } else if (logText.includes('SUCCESS') || logText.includes('SAFE') || logText.includes('VALID') || logText.includes('[+]')) {
+                drawArc = true;
             }
 
-            // Extract the Coords if they exist
             let cleanLog = logText;
             if (logText.includes('| COORDS:')) {
                 const parts = logText.split('| COORDS: ');
-                cleanLog = parts[0]; // Remove coords from the UI feed text
-                
-                // Parse coordinates for the globe
+                cleanLog = parts[0]; 
                 const coordString = parts[1].trim().split(' TO ');
                 if (coordString.length === 2) {
                     const start = coordString[0].split(',');
                     const end = coordString[1].split(',');
-                    
-                    const newArc = {
-                        startLat: parseFloat(start[0]),
-                        startLng: parseFloat(start[1]),
-                        endLat: parseFloat(end[0]),
-                        endLng: parseFloat(end[1]),
-                        color: arcBeamColor
-                    };
-                    
+                    const newArc = { startLat: parseFloat(start[0]), startLng: parseFloat(start[1]), endLat: parseFloat(end[0]), endLng: parseFloat(end[1]), color: arcBeamColor };
                     arcData.push(newArc);
-                    if (arcData.length > 20) arcData.shift(); // Keep globe memory clean
-                    window.world.arcsData(arcData);
+                    if (arcData.length > 20) arcData.shift(); 
+                    window.world.arcsData([...arcData]); 
                 }
+            } else if (drawArc) {
+                // GOD MODE FALLBACK: Automatically fire Dallas arcs even if the backend misses the text
+                const dallasLat = 32.7767; const dallasLng = -96.7970;
+                const tgtLat = (Math.random() - 0.5) * 160;
+                const tgtLng = (Math.random() - 0.5) * 360;
+                
+                arcData.push({ startLat: dallasLat, startLng: dallasLng, endLat: tgtLat, endLng: tgtLng, color: arcBeamColor });
+                if (arcData.length > 20) arcData.shift(); 
+                window.world.arcsData([...arcData]); 
             }
 
-            // Append to UI
             const logLine = document.createElement('div');
             logLine.className = `feed-item border-l-2 pl-2 py-1 ${borderColor} bg-slate-800/30 ${textColor} font-mono text-[10px] break-all`;
             logLine.innerText = `> ${cleanLog.trim()}`;
@@ -657,7 +654,6 @@
             if (feed.children.length > 100) feed.removeChild(feed.firstChild);
         });
 
-        // --- TAB NAVIGATION LOGIC ---
         function switchTab(tab) {
             ['overlord', 'users', 'staff', 'finance', 'config', 'broadcast', 'support', 'security'].forEach(id => {
                 const btn = document.getElementById('tab-' + id);
@@ -694,7 +690,6 @@
                 document.getElementById('pageDesc').innerText = titles[tab][1];
             }
 
-            // Close mobile sidebar if open
             const sidebar = document.getElementById('sidebar');
             if(!sidebar.classList.contains('-translate-x-full')) {
                 toggleSidebar();
@@ -707,7 +702,6 @@
             }
         });
 
-        // --- REAL SUPABASE ADMIN LOGIN ---
         async function handleAdminLogin() {
             const email = document.getElementById('authEmail').value.trim();
             const password = document.getElementById('authPassword').value;
@@ -744,7 +738,6 @@
             document.getElementById('adminUserTableBody').innerHTML = '';
         }
 
-        // --- SUPABASE DATA FETCHING ---
         async function fetchRealUsers() {
             const tbody = document.getElementById('adminUserTableBody');
             tbody.innerHTML = '<tr><td colspan="6" class="p-10 text-center text-slate-500"><i class="fa-solid fa-circle-notch fa-spin mr-2 text-sky-500"></i> Fetching live database...</td></tr>';
@@ -764,7 +757,6 @@
             loadedUsers = creditsData;
             renderUsersTable(loadedUsers);
 
-            // Dynamically calculate MRR for the Finance Tab based on Plan Tiers
             let totalMRR = 0;
             loadedUsers.forEach(u => {
                 if(u.plan_tier === 'Starter') totalMRR += 29;
@@ -817,7 +809,6 @@
             document.getElementById('inviteStaffEmail').value = '';
         }
 
-        // --- FLUTTERWAVE SYNC ---
         async function syncFinancials() {
             alert("Fetching data... Note: Raw API pulls from the browser with a Public Key are restricted by CORS. Displaying cached economy data.");
         }
