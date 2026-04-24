@@ -571,17 +571,19 @@
         // GOD MODE: Global Map Data & Precision Lasers
         let arcData = [];
         
-        // The Map Markers: Dallas Origin + Real MX Hubs
-        const mxHubs = [
-            {lat: 32.77, lng: -96.79, city: "Dallas (ORIGIN)", type: 'origin'},
-            {lat: 51.50, lng: -0.12, city: "London", type: 'target'},
-            {lat: 50.11, lng: 8.68, city: "Frankfurt", type: 'target'},
-            {lat: 35.68, lng: 139.76, city: "Tokyo", type: 'target'},
-            {lat: 1.35, lng: 103.81, city: "Singapore", type: 'target'},
-            {lat: -33.86, lng: 151.20, city: "Sydney", type: 'target'},
-            {lat: 37.38, lng: -122.08, city: "California", type: 'target'},
-            {lat: 40.71, lng: -74.00, city: "New York", type: 'target'}
-        ];
+        // 1. The Map Markers: Dallas Origin
+        const originHub = [{lat: 32.77, lng: -96.79, city: "Dallas (ORIGIN)", type: 'origin'}];
+
+        // 2. Generate 3000+ points simulating global cities and oceanic subsea relays
+        const globalNodes = [];
+        for(let i=0; i<3000; i++) {
+            globalNodes.push({
+                lat: (Math.random() - 0.5) * 170, // Spread across all latitudes
+                lng: (Math.random() - 0.5) * 360, // Spread across all longitudes
+                size: Math.random() * 0.15 + 0.05,
+                color: ['#1e293b', '#334155', '#0ea5e9'][Math.floor(Math.random() * 3)] // Subtle tech colors
+            });
+        }
 
         function initGlobe() {
             const globeContainer = document.getElementById('globeViz');
@@ -592,14 +594,21 @@
                 .showAtmosphere(true) // Atmosphere halo ON
                 .atmosphereColor('#38bdf8') // Premium blue
                 .atmosphereAltitude(0.15)
-                .labelsData(mxHubs) // Injecting city names
+                .labelsData(originHub) // Injecting Dallas origin name
                 .labelLat(d => d.lat)
                 .labelLng(d => d.lng)
                 .labelText(d => d.city)
-                .labelSize(d => d.type === 'origin' ? 1.5 : 1)
-                .labelDotRadius(d => d.type === 'origin' ? 0.8 : 0.4)
-                .labelColor(d => d.type === 'origin' ? '#38bdf8' : '#64748b')
+                .labelSize(1.5)
+                .labelDotRadius(0.8)
+                .labelColor(() => '#38bdf8')
                 .labelResolution(2)
+                .pointsData(globalNodes) // Injecting thousands of data nodes globally
+                .pointLat('lat')
+                .pointLng('lng')
+                .pointColor('color')
+                .pointAltitude(0.01)
+                .pointRadius('size')
+                .pointsMerge(true) // Keeps browser performance perfect even with 3000 dots
                 .arcColor('color')
                 .arcStroke(0.3) // Thin, elegant laser lines
                 .arcDashLength(0.1) // Short, fast light pulses
@@ -611,7 +620,9 @@
                 
             window.world.controls().autoRotate = true;
             window.world.controls().autoRotateSpeed = 0.5;
-            window.world.controls().enableZoom = false; 
+            window.world.controls().enableZoom = true; // ZOOM UNLOCKED
+            window.world.controls().minDistance = 120; // Prevents zooming completely inside the earth
+            window.world.controls().maxDistance = 400; // Prevents zooming too far into space
         }
         initGlobe();
 
@@ -656,23 +667,18 @@
                     const end = coordString[1].split(',');
                     const newArc = { startLat: parseFloat(start[0]), startLng: parseFloat(start[1]), endLat: parseFloat(end[0]), endLng: parseFloat(end[1]), color: arcBeamColor };
                     arcData.push(newArc);
-                    if (arcData.length > 30) arcData.shift(); 
+                    if (arcData.length > 40) arcData.shift(); 
                     window.world.arcsData([...arcData]); 
                 }
             } else if (drawArc) {
-                // GOD MODE FALLBACK: Auto-fires from Dallas directly to the real city targets
+                // GOD MODE FALLBACK: Target anywhere in the world (195+ Countries + Oceans)
                 const dallasLat = 32.7767; const dallasLng = -96.7970;
                 
-                // Exclude Dallas from target list so it doesn't shoot itself
-                const targets = mxHubs.filter(h => h.type === 'target');
-                const hub = targets[Math.floor(Math.random() * targets.length)];
-                
-                // Tiny micro-scatter so arcs hitting the same city don't perfectly overlap
-                const tgtLat = hub.lat + (Math.random() - 0.5) * 2;
-                const tgtLng = hub.lng + (Math.random() - 0.5) * 2;
+                const tgtLat = (Math.random() - 0.5) * 160;
+                const tgtLng = (Math.random() - 0.5) * 360;
                 
                 arcData.push({ startLat: dallasLat, startLng: dallasLng, endLat: tgtLat, endLng: tgtLng, color: arcBeamColor });
-                if (arcData.length > 30) arcData.shift(); 
+                if (arcData.length > 40) arcData.shift(); // Keep more arcs on screen simultaneously
                 window.world.arcsData([...arcData]); 
             }
 
