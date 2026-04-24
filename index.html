@@ -4,31 +4,118 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mailvah Supreme Admin</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/globe.gl"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
     <style>
-        body { background-color: #0b1120; color: white; font-family: 'Inter', sans-serif; background-image: radial-gradient(circle at top right, #1e293b, #0b1120); overflow: hidden; }
-        .glass-panel { background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(16px); border: 1px solid rgba(56, 189, 248, 0.15); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
-        .glass-panel:hover { border-color: rgba(56, 189, 248, 0.3); }
-        .sidebar-item { border-left: 3px solid transparent; transition: all 0.2s ease; }
-        .active-tab { background: linear-gradient(90deg, rgba(56, 189, 248, 0.1) 0%, transparent 100%); border-left: 3px solid #38bdf8; color: #38bdf8; }
-        .custom-scrollbar::-webkit-scrollbar { height: 4px; width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-        .hidden { display: none !important; }
-        .toggle-checkbox:checked { right: 0; border-color: #68D391; }
-        .toggle-checkbox:checked + .toggle-label { background-color: #10B981; }
-        #commandPalette { backdrop-filter: blur(25px); }
-        #globeViz { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; opacity: 0.8; cursor: grab; }
-        #globeViz:active { cursor: grabbing; }
-        .hud-overlay { position: relative; z-index: 10; pointer-events: none; }
-        .hud-overlay > * { pointer-events: auto; }
-        input[type=range]::-webkit-slider-thumb { appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #f87171; cursor: pointer; border: 2px solid #fff; }
-        @keyframes slideInFade { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .feed-item { animation: slideInFade 0.2s ease-out forwards; }
+        body { 
+            background-color: #0b1120; 
+            color: white; 
+            font-family: 'Inter', sans-serif; 
+            background-image: radial-gradient(circle at top right, #1e293b, #0b1120); 
+            overflow: hidden; 
+        }
+        
+        .glass-panel { 
+            background: rgba(15, 23, 42, 0.4); 
+            backdrop-filter: blur(16px); 
+            border: 1px solid rgba(56, 189, 248, 0.15); 
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); 
+        }
+        
+        .glass-panel:hover { 
+            border-color: rgba(56, 189, 248, 0.3); 
+        }
+        
+        .sidebar-item { 
+            border-left: 3px solid transparent; 
+            transition: all 0.2s ease; 
+        }
+        
+        .active-tab { 
+            background: linear-gradient(90deg, rgba(56, 189, 248, 0.1) 0%, transparent 100%); 
+            border-left: 3px solid #38bdf8; 
+            color: #38bdf8; 
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar { 
+            height: 4px; 
+            width: 4px; 
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track { 
+            background: transparent; 
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb { 
+            background: #334155; 
+            border-radius: 4px; 
+        }
+        
+        .hidden { 
+            display: none !important; 
+        }
+        
+        .toggle-checkbox:checked { 
+            right: 0; 
+            border-color: #68D391; 
+        }
+        
+        .toggle-checkbox:checked + .toggle-label { 
+            background-color: #10B981; 
+        }
+        
+        #commandPalette { 
+            backdrop-filter: blur(25px); 
+        }
+        
+        #globeViz { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            z-index: 0; 
+            opacity: 0.8; 
+            cursor: grab; 
+        }
+        
+        #globeViz:active { 
+            cursor: grabbing; 
+        }
+        
+        .hud-overlay { 
+            position: relative; 
+            z-index: 10; 
+            pointer-events: none; 
+        }
+        
+        .hud-overlay > * { 
+            pointer-events: auto; 
+        }
+        
+        input[type=range]::-webkit-slider-thumb { 
+            appearance: none; 
+            width: 16px; 
+            height: 16px; 
+            border-radius: 50%; 
+            background: #f87171; 
+            cursor: pointer; 
+            border: 2px solid #fff; 
+        }
+        
+        @keyframes slideInFade { 
+            from { opacity: 0; transform: translateY(10px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        
+        .feed-item { 
+            animation: slideInFade 0.2s ease-out forwards; 
+        }
     </style>
 </head>
 <body class="flex flex-col md:flex-row h-[100dvh] overflow-hidden text-slate-200">
@@ -38,14 +125,18 @@
             <div class="flex items-center px-4 py-4 border-b border-slate-800">
                 <i class="fa-solid fa-terminal text-sky-400 mr-3"></i>
                 <input type="text" id="cmdInput" class="w-full bg-transparent border-none outline-none text-white text-lg placeholder-slate-500 font-mono" placeholder="Type a command or search (e.g. 'throttle user@agency.com')">
-                <div class="flex gap-1"><kbd class="bg-slate-800 text-slate-400 text-[10px] px-2 py-1 rounded border border-slate-700 font-mono">ESC</kbd></div>
+                <div class="flex gap-1">
+                    <kbd class="bg-slate-800 text-slate-400 text-[10px] px-2 py-1 rounded border border-slate-700 font-mono">ESC</kbd>
+                </div>
             </div>
             <div class="p-2 bg-slate-900/50">
                 <div class="px-3 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Suggested Directives</div>
+                
                 <button onclick="closeCommandPalette(); switchTab('finance')" class="w-full text-left px-4 py-3 hover:bg-slate-800 rounded-lg text-sm text-slate-300 flex items-center justify-between group">
                     <span><i class="fa-solid fa-money-bill-transfer w-5 text-emerald-400 mr-2"></i> Open MRR & Financial Hub</span>
                     <i class="fa-solid fa-arrow-right text-slate-600 group-hover:text-emerald-400"></i>
                 </button>
+                
                 <button onclick="closeCommandPalette(); switchTab('support')" class="w-full text-left px-4 py-3 hover:bg-slate-800 rounded-lg text-sm text-slate-300 flex items-center justify-between group">
                     <span><i class="fa-solid fa-headset w-5 text-sky-400 mr-2"></i> Open Support Desk</span>
                     <i class="fa-solid fa-arrow-right text-slate-600 group-hover:text-sky-400"></i>
@@ -57,6 +148,7 @@
     <div id="adminAuthContainer" class="fixed top-0 left-0 w-full h-full z-[9999] flex items-center justify-center bg-[#0b1120] px-4">
         <div class="max-w-md w-full bg-slate-900 border border-sky-500/30 rounded-2xl p-8 shadow-2xl relative overflow-hidden">
             <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-sky-400 to-blue-600"></div>
+            
             <div class="text-center mb-8">
                 <div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/30">
                     <i class="fa-solid fa-user-shield text-white text-xl"></i>
@@ -64,12 +156,19 @@
                 <h2 class="text-2xl font-black text-white tracking-tight">System Override</h2>
                 <p class="text-xs text-slate-400 mt-2">Restricted Mailvah Administration.</p>
             </div>
+            
             <div class="space-y-4">
-                <div><input type="email" id="authEmail" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-slate-200 focus:outline-none focus:border-sky-500 text-sm" placeholder="staff@mailvah.com"></div>
-                <div><input type="password" id="authPassword" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-slate-200 focus:outline-none focus:border-sky-500 text-sm" placeholder="Master Password"></div>
+                <div>
+                    <input type="email" id="authEmail" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-slate-200 focus:outline-none focus:border-sky-500 text-sm" placeholder="staff@mailvah.com">
+                </div>
+                <div>
+                    <input type="password" id="authPassword" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-slate-200 focus:outline-none focus:border-sky-500 text-sm" placeholder="Master Password">
+                </div>
+                
                 <button onclick="handleAdminLogin()" id="loginBtn" class="w-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-sky-500/25 tracking-widest text-xs mt-4 flex justify-center items-center gap-2">
                     <i class="fa-solid fa-fingerprint"></i> INITIATE CLEARANCE
                 </button>
+                
                 <p id="authMessage" class="text-center text-xs font-bold mt-4 hidden uppercase tracking-widest"></p>
             </div>
         </div>
@@ -80,10 +179,13 @@
             <div class="w-6 h-6 bg-gradient-to-br from-sky-400 to-blue-600 rounded flex items-center justify-center font-bold text-white text-xs">M</div>
             <span class="font-black tracking-tight text-white">MAILVAH GOD-MODE</span>
         </div>
-        <button onclick="toggleSidebar()" class="text-slate-400 hover:text-white focus:outline-none"><i class="fa-solid fa-bars text-xl"></i></button>
+        <button onclick="toggleSidebar()" class="text-slate-400 hover:text-white focus:outline-none">
+            <i class="fa-solid fa-bars text-xl"></i>
+        </button>
     </div>
 
     <div id="sidebar" class="fixed inset-y-0 left-0 w-64 bg-[#0f172a] transform -translate-x-full md:relative md:translate-x-0 transition duration-300 ease-in-out z-50 flex flex-col border-r border-slate-800/50 shadow-2xl">
+        
         <div class="p-6 flex items-center justify-between border-b border-slate-800/50">
             <div class="flex items-center gap-3">
                 <div class="w-8 h-8 bg-gradient-to-br from-sky-400 to-blue-600 rounded-lg flex items-center justify-center font-bold text-white text-lg shadow-lg shadow-sky-500/20">M</div>
@@ -104,6 +206,7 @@
         </div>
 
         <div class="flex-1 py-4 flex flex-col gap-1 overflow-y-auto custom-scrollbar">
+            
             <div class="px-6 mb-1 mt-2"><span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Telemetry & Security</span></div>
             <button onclick="switchTab('overlord')" id="tab-overlord" class="sidebar-item active-tab flex items-center justify-start gap-3 px-6 py-2.5 text-slate-400 hover:text-slate-200 transition-all text-sm w-full">
                 <i class="fa-solid fa-globe w-5 text-center text-blue-400"></i><span class="font-medium">Global Pulse Map</span>
@@ -148,6 +251,7 @@
         
         <div id="view-overlord" class="block absolute inset-0 w-full h-full bg-[#050810]">
             <div id="globeViz"></div>
+            
             <div class="hud-overlay absolute inset-0 p-4 md:p-10 flex flex-col justify-between h-full pointer-events-none">
                 <div>
                     <div class="flex justify-between items-start mb-8">
@@ -163,21 +267,27 @@
                             <div class="text-2xl font-black text-white font-mono" id="statWorkers">8/8</div>
                             <div class="text-[10px] text-blue-400 mt-1"><i class="fa-solid fa-check-circle"></i> Optimal (400MB Free)</div>
                         </div>
+                        
                         <div class="glass-panel p-4 rounded-xl border-t-2 border-t-purple-500 pointer-events-auto bg-slate-900/80">
                             <div class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">Engine Load</div>
                             <div class="text-2xl font-black text-white font-mono" id="statCpu">14%</div>
-                            <div class="w-full bg-slate-800 h-1 mt-2 rounded overflow-hidden"><div class="bg-purple-500 h-full w-[14%]" id="barCpu"></div></div>
+                            <div class="w-full bg-slate-800 h-1 mt-2 rounded overflow-hidden">
+                                <div class="bg-purple-500 h-full w-[14%]" id="barCpu"></div>
+                            </div>
                         </div>
+                        
                         <div class="glass-panel p-4 rounded-xl border-t-2 border-t-emerald-500 pointer-events-auto bg-slate-900/80">
                             <div class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">Domain Radar</div>
                             <div class="text-2xl font-black text-white font-mono"><i class="fa-solid fa-shield-check text-emerald-400"></i></div>
                             <div class="text-[10px] text-emerald-400 mt-1">IPs Clean / Not Blocked</div>
                         </div>
+                        
                         <div class="glass-panel p-4 rounded-xl border-t-2 border-t-amber-500 pointer-events-auto bg-slate-900/80">
                             <div class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">Port-25 Latency</div>
                             <div class="text-2xl font-black text-white font-mono" id="statPing">42ms</div>
                             <div class="text-[10px] text-amber-400 mt-1">Deep-Scan Handshake</div>
                         </div>
+                        
                         <div class="glass-panel p-4 rounded-xl border-t-2 border-t-sky-500 pointer-events-auto flex flex-col justify-between bg-slate-900/80">
                             <div class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">Wash Velocity</div>
                             <div class="text-2xl font-black text-white font-mono" id="statSpm">1,204 <span class="text-[10px] text-slate-500">req/m</span></div>
@@ -207,7 +317,10 @@
             </div>
             <div class="text-right hidden md:block">
                 <div class="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Server Connection</div>
-                <div class="font-mono text-sky-400 text-sm flex items-center gap-2"><div class="w-2 h-2 bg-sky-400 rounded-full animate-pulse"></div> <span id="realtimeStatus">Supabase Live</span></div>
+                <div class="font-mono text-sky-400 text-sm flex items-center gap-2">
+                    <div class="w-2 h-2 bg-sky-400 rounded-full animate-pulse"></div> 
+                    <span id="realtimeStatus">Supabase Live</span>
+                </div>
             </div>
         </div>
 
@@ -218,11 +331,13 @@
                     <div class="text-4xl font-black text-white mb-1 font-mono" id="liveMrrDisplay">$0.00</div>
                     <div class="text-xs text-emerald-400">Calculated from active vaults</div>
                 </div>
+                
                 <div class="glass-panel p-6 rounded-2xl border-t-2 border-t-red-500">
                     <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2">Churn Risk (Failed Cards)</div>
                     <div class="text-4xl font-black text-white mb-1 font-mono">$420.00</div>
                     <div class="text-xs text-red-400">Requires Dunning Sequence</div>
                 </div>
+                
                 <div class="glass-panel p-6 rounded-2xl border-t-2 border-t-purple-500">
                     <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2">Active Paid Accounts</div>
                     <div class="text-4xl font-black text-white mb-1 font-mono" id="livePaidCount">0</div>
@@ -233,12 +348,14 @@
             <div class="glass-panel p-6 md:p-8 rounded-2xl border-t-2 border-t-sky-500 mb-8">
                 <h3 class="text-xl font-bold text-white mb-2"><i class="fa-solid fa-money-bill-transfer text-sky-400 mr-2"></i> Flutterwave Gateway Sync</h3>
                 <p class="text-sm text-slate-400 mb-6">Fetch raw transaction data securely bypassing the webhook queue.</p>
+                
                 <div class="flex flex-col md:flex-row gap-4 mb-4">
                     <input type="password" id="fwSecretKey" readonly value="FLWPUBK-dc0754094fea48efe0f9cc3fe45ed853-X" class="flex-1 bg-[#050914] border border-slate-700 p-3.5 rounded-xl text-sm text-slate-500 outline-none font-mono cursor-not-allowed">
                     <button onclick="syncFinancials()" class="bg-sky-600 hover:bg-sky-500 text-white font-bold px-8 py-3.5 rounded-xl shadow-lg shadow-sky-500/20 transition-all text-sm tracking-widest flex items-center justify-center gap-2">
                         <i class="fa-solid fa-cloud-arrow-down"></i> FETCH LEDGER
                     </button>
                 </div>
+                <p class="text-[10px] text-slate-500 uppercase tracking-widest"><i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Note: Public Keys cannot fetch transactions via browser. Backend proxy is required for raw ledger pulls. Displaying synced Supabase economy records below.</p>
             </div>
             
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -249,7 +366,10 @@
                     <div class="overflow-x-auto custom-scrollbar p-0 flex-1">
                         <table class="w-full text-left">
                             <thead class="bg-slate-900/50 text-[10px] text-slate-500 uppercase tracking-widest">
-                                <tr><th class="p-4">Customer</th><th class="p-4 text-right">Action</th></tr>
+                                <tr>
+                                    <th class="p-4">Customer</th>
+                                    <th class="p-4 text-right">Action</th>
+                                </tr>
                             </thead>
                             <tbody class="text-sm text-slate-300 divide-y divide-slate-800/50">
                                 <tr class="hover:bg-slate-800/30">
@@ -260,12 +380,18 @@
                         </table>
                     </div>
                 </div>
+                
                 <div class="glass-panel rounded-2xl overflow-hidden flex flex-col p-6">
                     <h3 class="text-sm font-bold text-white mb-4 border-b border-slate-800 pb-3"><i class="fa-solid fa-ticket text-amber-400 mr-2"></i> Promo Code Matrix</h3>
+                    
                     <div class="flex items-center justify-between bg-slate-900/50 border border-slate-700/50 p-3 rounded-lg mb-2">
                         <div><div class="text-sm font-bold text-white font-mono">DONKI50</div><div class="text-[10px] text-slate-400">50% Off First Month</div></div>
                         <div class="text-right"><div class="text-sm font-bold text-emerald-400">42 Uses</div></div>
                     </div>
+                    
+                    <button onclick="alert('Promo generation engine opening...')" class="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-lg text-xs transition-colors border border-slate-700 mt-2">
+                        <i class="fa-solid fa-plus mr-1"></i> CREATE NEW PROMO
+                    </button>
                 </div>
             </div>
         </div>
@@ -273,10 +399,14 @@
         <div id="view-security" class="hidden px-4 md:px-10 pb-10">
             <div class="glass-panel p-6 rounded-2xl border-t-2 border-t-red-500 mb-8">
                 <h3 class="text-lg font-bold text-white mb-2"><i class="fa-solid fa-radar text-red-400 mr-2"></i> Threat Grid (Abuse Detection)</h3>
+                <p class="text-xs text-slate-400 mb-6">Monitor unusual API spikes that could crash the 1GB Hostwinds server.</p>
                 <div class="bg-slate-900/50 rounded-xl border border-slate-700/50 p-4 font-mono text-xs">
                     <div class="flex justify-between items-center mb-3 text-red-400 border-b border-red-900/50 pb-2">
-                        <span>IP: 104.28.19.42</span><span class="bg-red-500/20 px-2 py-1 rounded">SPAM DETECTED</span>
+                        <span>IP: 104.28.19.42</span>
+                        <span class="bg-red-500/20 px-2 py-1 rounded">SPAM DETECTED</span>
                     </div>
+                    <div class="text-slate-400 mb-4">Request Rate: 450 req/sec (Limit: 50)</div>
+                    <button class="w-full bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/30 transition-colors py-2 rounded font-bold uppercase tracking-widest">Sever Connection & Ban IP</button>
                 </div>
             </div>
         </div>
@@ -289,7 +419,12 @@
                 <div class="flex-1 overflow-x-auto custom-scrollbar p-0">
                     <table class="w-full text-left min-w-[700px]">
                         <thead class="bg-slate-900/80 text-[10px] text-slate-500 uppercase tracking-widest">
-                            <tr><th class="p-4">Operator</th><th class="p-4">Issue</th><th class="p-4 text-center">Status</th><th class="p-4 text-right">Action</th></tr>
+                            <tr>
+                                <th class="p-4">Operator</th>
+                                <th class="p-4">Issue</th>
+                                <th class="p-4 text-center">Status</th>
+                                <th class="p-4 text-right">Action</th>
+                            </tr>
                         </thead>
                         <tbody id="supportTableBody" class="text-sm text-slate-300 divide-y divide-slate-800/50">
                             <tr><td colspan="4" class="p-10 text-center text-slate-500">Fetching live tickets...</td></tr>
@@ -304,15 +439,23 @@
                 <div class="p-6 border-b border-slate-800 bg-slate-900/50 flex flex-col md:flex-row gap-4 justify-between items-center">
                     <div class="relative w-full md:w-96">
                         <input type="text" id="adminUserSearch" oninput="filterUsers()" placeholder="Search user ID..." class="w-full bg-[#050914] border border-slate-700 p-3 pl-10 rounded-xl outline-none text-sm text-white placeholder-slate-600">
+                        <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-500"></i>
                     </div>
                     <button onclick="fetchRealUsers()" class="w-full md:w-auto bg-sky-600/20 text-sky-400 px-4 py-3 rounded-xl text-xs font-bold border border-sky-500/30">
                         <i class="fa-solid fa-rotate"></i> Manual Refresh
                     </button>
                 </div>
+                
                 <div class="flex-1 overflow-x-auto custom-scrollbar p-0">
                     <table class="w-full text-left min-w-[1000px]">
                         <thead class="bg-slate-900/80 text-[10px] text-slate-500 uppercase tracking-widest sticky top-0 z-10">
-                            <tr><th class="p-4">User ID</th><th class="p-4">Plan</th><th class="p-4 text-right">Wash</th><th class="p-4 text-right">Hunt</th><th class="p-4 text-right">Actions</th></tr>
+                            <tr>
+                                <th class="p-4">User ID</th>
+                                <th class="p-4">Plan</th>
+                                <th class="p-4 text-right">Wash</th>
+                                <th class="p-4 text-right">Hunt</th>
+                                <th class="p-4 text-right">Actions</th>
+                            </tr>
                         </thead>
                         <tbody id="adminUserTableBody" class="text-sm text-slate-300 divide-y divide-slate-800/50">
                             <tr><td colspan="5" class="p-10 text-center text-slate-500">Fetching live database...</td></tr>
@@ -334,7 +477,9 @@
                             <option value="Growth">Growth & Analytics</option>
                             <option value="Infra">Infrastructure Monitor</option>
                         </select>
-                        <button onclick="inviteRealStaff()" id="btnInviteStaff" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-lg text-xs transition-colors mt-2">ADD OPERATIVE</button>
+                        <button onclick="inviteRealStaff()" id="btnInviteStaff" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-lg text-xs transition-colors mt-2">
+                            ADD OPERATIVE
+                        </button>
                     </div>
                 </div>
 
@@ -345,7 +490,12 @@
                     <div class="overflow-x-auto custom-scrollbar p-0 flex-1">
                         <table class="w-full text-left min-w-[500px]">
                             <thead class="bg-slate-900/50 text-[10px] text-slate-500 uppercase tracking-widest">
-                                <tr><th class="p-4">Operative</th><th class="p-4">Clearance Role</th><th class="p-4 text-center">Status</th><th class="p-4 text-right">Access Control</th></tr>
+                                <tr>
+                                    <th class="p-4">Operative</th>
+                                    <th class="p-4">Clearance Role</th>
+                                    <th class="p-4 text-center">Status</th>
+                                    <th class="p-4 text-right">Access Control</th>
+                                </tr>
                             </thead>
                             <tbody id="staffTableBody" class="text-sm text-slate-300 divide-y divide-slate-800/50">
                                 <tr><td colspan="4" class="p-10 text-center text-slate-500">Fetching live staff roster...</td></tr>
@@ -359,13 +509,30 @@
         <div id="view-config" class="hidden px-4 md:px-10 pb-10">
             <div class="glass-panel p-6 md:p-8 rounded-2xl border-t-2 border-t-red-500 mb-8">
                 <h3 class="text-xl font-bold text-white mb-2"><i class="fa-solid fa-power-off text-red-500 mr-2"></i> Global Kill Switch</h3>
+                <div class="flex items-center justify-between bg-slate-900/50 border border-slate-800 p-4 rounded-xl mt-4">
+                    <div>
+                        <div class="text-white font-bold text-sm">Maintenance Mode</div>
+                        <div class="text-[10px] text-slate-500 mt-1 uppercase tracking-widest">Currently Offline</div>
+                    </div>
+                    <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                        <input type="checkbox" name="toggle" id="maintenanceToggle" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 border-slate-700 appearance-none cursor-pointer transition-all duration-300 z-10"/>
+                        <label for="maintenanceToggle" class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-700 cursor-pointer transition-all duration-300"></label>
+                    </div>
+                </div>
             </div>
         </div>
 
         <div id="view-broadcast" class="hidden px-4 md:px-10 pb-10">
             <div class="glass-panel p-6 md:p-8 rounded-2xl max-w-3xl mx-auto border-t-2 border-t-pink-500">
-                <div class="mb-6"><h3 class="text-xl font-bold text-white mb-2"><i class="fa-solid fa-tower-broadcast text-pink-500 mr-2"></i> Push Notification Override</h3></div>
-                <textarea id="broadcastMessage" rows="3" class="w-full bg-[#050914] border border-slate-700 p-4 rounded-xl text-sm text-white outline-none mb-4"></textarea>
+                <div class="mb-6">
+                    <h3 class="text-xl font-bold text-white mb-2"><i class="fa-solid fa-tower-broadcast text-pink-500 mr-2"></i> Push Notification Override</h3>
+                </div>
+                <textarea id="broadcastMessage" rows="3" class="w-full bg-[#050914] border border-slate-700 p-4 rounded-xl text-sm text-white outline-none mb-4" placeholder="Type broadcast message..."></textarea>
+                <select id="broadcastType" class="w-full bg-[#050914] border border-slate-700 p-3 rounded-xl text-sm text-white outline-none focus:border-pink-500 mb-4">
+                    <option value="info">System Update (Blue)</option>
+                    <option value="success">Feature Launch (Emerald)</option>
+                    <option value="danger">Critical Alert (Red)</option>
+                </select>
                 <button onclick="pushRealBroadcast()" id="broadcastBtn" class="w-full bg-gradient-to-r from-pink-600 to-rose-600 text-white font-bold py-4 rounded-xl shadow-lg transition-all text-sm tracking-widest">
                     EXECUTE GLOBAL PUSH
                 </button>
@@ -379,17 +546,27 @@
             <button onclick="document.getElementById('creditOverrideModal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-500 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
             <h3 class="text-lg font-bold text-white mb-1">Vault Override</h3>
             <p class="text-[10px] text-slate-400 mb-6 font-mono break-all" id="overrideUserId">User ID</p>
+            
             <div class="space-y-4">
-                <input type="number" id="overrideWash" class="w-full bg-[#050914] border border-slate-700 p-3 rounded-lg text-sm text-white font-mono" value="0">
-                <input type="number" id="overrideHunt" class="w-full bg-[#050914] border border-slate-700 p-3 rounded-lg text-sm text-white font-mono" value="0">
-                <select id="overridePlan" class="w-full bg-[#050914] border border-slate-700 p-3 rounded-lg text-sm text-white font-mono">
-                    <option value="Sandbox">Sandbox</option>
-                    <option value="Starter">Starter</option>
-                    <option value="Growth">Growth</option>
-                    <option value="Pro">Pro</option>
-                    <option value="Scale">Scale</option>
-                    <option value="Apex">Apex</option>
-                </select>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">Set Wash Balance (I)</label>
+                    <input type="number" id="overrideWash" class="w-full bg-[#050914] border border-slate-700 p-3 rounded-lg text-sm text-white font-mono" value="0">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">Set Hunt Balance (D)</label>
+                    <input type="number" id="overrideHunt" class="w-full bg-[#050914] border border-slate-700 p-3 rounded-lg text-sm text-white font-mono" value="0">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">Force Plan</label>
+                    <select id="overridePlan" class="w-full bg-[#050914] border border-slate-700 p-3 rounded-lg text-sm text-white font-mono">
+                        <option value="Sandbox">Sandbox</option>
+                        <option value="Starter">Starter</option>
+                        <option value="Growth">Growth</option>
+                        <option value="Pro">Pro</option>
+                        <option value="Scale">Scale</option>
+                        <option value="Apex">Apex</option>
+                    </select>
+                </div>
                 <button onclick="executeRealCreditOverride()" id="overrideBtn" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-lg text-xs mt-4">FORCE UPDATE</button>
             </div>
         </div>
@@ -406,6 +583,7 @@
         let loadedUsers = [];
         let targetOverrideUserId = null;
 
+        // UI Controls
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebarOverlay');
@@ -415,85 +593,217 @@
 
         const palette = document.getElementById('commandPalette');
         const cmdInput = document.getElementById('cmdInput');
+        
         document.addEventListener('keydown', (e) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); palette.classList.toggle('hidden'); if (!palette.classList.contains('hidden')) cmdInput.focus(); }
-            if (e.key === 'Escape' && !palette.classList.contains('hidden')) { palette.classList.add('hidden'); cmdInput.value = ''; }
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') { 
+                e.preventDefault(); 
+                palette.classList.toggle('hidden'); 
+                if (!palette.classList.contains('hidden')) {
+                    cmdInput.focus(); 
+                }
+            }
+            if (e.key === 'Escape' && !palette.classList.contains('hidden')) { 
+                palette.classList.add('hidden'); 
+                cmdInput.value = ''; 
+            }
         });
-        function closeCommandPalette() { palette.classList.add('hidden'); cmdInput.value = ''; }
+        
+        function closeCommandPalette() { 
+            palette.classList.add('hidden'); 
+            cmdInput.value = ''; 
+        }
 
-        // --- GOD MODE GLOBE INIT (UNCHANGED) ---
+        // --- GOD MODE GLOBE INIT ---
         let arcData = [];
-        const mxOrigin = {lat: 32.77, lng: -96.79, city: "Dallas (ORIGIN)", type: 'origin'};
+        const mxOrigin = { lat: 32.77, lng: -96.79, city: "Dallas (ORIGIN)", type: 'origin' };
         let mapLabels = [
-            mxOrigin, {lat: 51.50, lng: -0.12, city: "London", type: 'target'}, {lat: 35.68, lng: 139.76, city: "Tokyo", type: 'target'},
-            {lat: 50.11, lng: 8.68, city: "Frankfurt", type: 'target'}, {lat: 6.52, lng: 3.37, city: "Lagos", type: 'target'},
-            {lat: 1.35, lng: 103.81, city: "Singapore", type: 'target'}, {lat: 40.71, lng: -74.00, city: "New York", type: 'target'}
+            mxOrigin, 
+            { lat: 51.50, lng: -0.12, city: "London", type: 'target' }, 
+            { lat: 35.68, lng: 139.76, city: "Tokyo", type: 'target' },
+            { lat: 50.11, lng: 8.68, city: "Frankfurt", type: 'target' }, 
+            { lat: 6.52, lng: 3.37, city: "Lagos", type: 'target' },
+            { lat: 1.35, lng: 103.81, city: "Singapore", type: 'target' }, 
+            { lat: 40.71, lng: -74.00, city: "New York", type: 'target' }
         ];
+        
         const globalNodes = [];
-        for(let i=0; i<3000; i++) globalNodes.push({ lat: (Math.random() - 0.5) * 170, lng: (Math.random() - 0.5) * 360, size: Math.random() * 0.15 + 0.05, color: ['#1e293b', '#334155', '#0ea5e9'][Math.floor(Math.random() * 3)] });
+        for(let i=0; i<3000; i++) {
+            globalNodes.push({ 
+                lat: (Math.random() - 0.5) * 170, 
+                lng: (Math.random() - 0.5) * 360, 
+                size: Math.random() * 0.15 + 0.05, 
+                color: ['#1e293b', '#334155', '#0ea5e9'][Math.floor(Math.random() * 3)] 
+            });
+        }
 
         function initGlobe() {
             const globeContainer = document.getElementById('globeViz');
-            window.world = Globe()(globeContainer).globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg').backgroundColor('#050810') 
-                .showAtmosphere(true).atmosphereColor('#38bdf8').atmosphereAltitude(0.15)
-                .labelsData(mapLabels).labelLat('lat').labelLng('lng').labelText('city')
+            
+            window.world = Globe()(globeContainer)
+                .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg')
+                .backgroundColor('#050810') 
+                .showAtmosphere(true)
+                .atmosphereColor('#38bdf8')
+                .atmosphereAltitude(0.15)
+                .labelsData(mapLabels)
+                .labelLat('lat')
+                .labelLng('lng')
+                .labelText('city')
                 .labelSize(d => d.type === 'origin' ? 1.5 : (d.type === 'target' ? 1 : 0.6))
                 .labelDotRadius(d => d.type === 'origin' ? 0.8 : (d.type === 'target' ? 0.5 : 0.2))
                 .labelColor(d => d.type === 'origin' ? '#38bdf8' : (d.type === 'target' ? '#ffffff' : 'rgba(100, 116, 139, 0.5)'))
-                .labelResolution(2).pointsData(globalNodes).pointLat('lat').pointLng('lng').pointColor('color').pointAltitude(0.01).pointRadius('size').pointsMerge(true) 
-                .arcColor('color').arcStroke(0.3).arcDashLength(0.1).arcDashGap(0.05).arcDashInitialGap(() => Math.random()).arcDashAnimateTime(1000).arcsData(arcData).pointOfView({ lat: 20, lng: -40, altitude: 2.2 }); 
-            window.world.controls().autoRotate = true; window.world.controls().autoRotateSpeed = 0.5; window.world.controls().enableZoom = true; window.world.controls().minDistance = 120; window.world.controls().maxDistance = 400; 
-            fetch('https://restcountries.com/v3.1/all?fields=name,latlng').then(res => res.json()).then(countries => {
-                const countryNodes = countries.map(c => ({ lat: c.latlng[0], lng: c.latlng[1], city: c.name.common, type: 'country' }));
-                mapLabels = [...mapLabels, ...countryNodes]; window.world.labelsData(mapLabels);
-            }).catch(e => console.log('Matrix country fetch passed over.'));
+                .labelResolution(2)
+                .pointsData(globalNodes)
+                .pointLat('lat')
+                .pointLng('lng')
+                .pointColor('color')
+                .pointAltitude(0.01)
+                .pointRadius('size')
+                .pointsMerge(true) 
+                .arcColor('color')
+                .arcStroke(0.3)
+                .arcDashLength(0.1)
+                .arcDashGap(0.05)
+                .arcDashInitialGap(() => Math.random())
+                .arcDashAnimateTime(1000)
+                .arcsData(arcData)
+                .pointOfView({ lat: 20, lng: -40, altitude: 2.2 }); 
+                
+            window.world.controls().autoRotate = true; 
+            window.world.controls().autoRotateSpeed = 0.5; 
+            window.world.controls().enableZoom = true; 
+            window.world.controls().minDistance = 120; 
+            window.world.controls().maxDistance = 400; 
+            
+            fetch('https://restcountries.com/v3.1/all?fields=name,latlng')
+                .then(res => res.json())
+                .then(countries => {
+                    const countryNodes = countries.map(c => ({ 
+                        lat: c.latlng[0], 
+                        lng: c.latlng[1], 
+                        city: c.name.common, 
+                        type: 'country' 
+                    }));
+                    mapLabels = [...mapLabels, ...countryNodes]; 
+                    window.world.labelsData(mapLabels);
+                })
+                .catch(e => console.log('Matrix country fetch passed over.'));
         }
+        
         initGlobe();
 
         // --- PM2 SOCKET TELEMETRY ---
         const socket = io('https://pulse.mailvah.com'); 
         const feed = document.getElementById('liveActionFeed');
+        
         socket.on('sys-stats', (sys) => {
-            document.getElementById('statCpu').innerText = sys.cpu_load + '%'; document.getElementById('barCpu').style.width = sys.cpu_load + '%';
-            if (sys.cpu_load > 85) document.getElementById('barCpu').classList.replace('bg-purple-500', 'bg-red-500'); else document.getElementById('barCpu').classList.replace('bg-red-500', 'bg-purple-500');
-            document.getElementById('statWorkers').innerText = sys.workers + '/8'; document.querySelector('#statWorkers + div').innerHTML = `<i class="fa-solid fa-check-circle"></i> ${sys.status} (${sys.ram_free}MB Free)`;
+            document.getElementById('statCpu').innerText = sys.cpu_load + '%'; 
+            document.getElementById('barCpu').style.width = sys.cpu_load + '%';
+            
+            if (sys.cpu_load > 85) {
+                document.getElementById('barCpu').classList.replace('bg-purple-500', 'bg-red-500'); 
+            } else {
+                document.getElementById('barCpu').classList.replace('bg-red-500', 'bg-purple-500');
+            }
+            
+            document.getElementById('statWorkers').innerText = sys.workers + '/8'; 
+            document.querySelector('#statWorkers + div').innerHTML = `<i class="fa-solid fa-check-circle"></i> ${sys.status} (${sys.ram_free}MB Free)`;
         });
+        
         socket.on('new-log', (logText) => {
-            const waitingText = document.getElementById('feedWaiting'); if (waitingText) waitingText.remove();
-            let textColor = 'text-emerald-300'; let borderColor = 'border-emerald-500'; let arcBeamColor = ['#10B981', '#34D399']; let drawArc = false;
+            const waitingText = document.getElementById('feedWaiting'); 
+            if (waitingText) waitingText.remove();
+            
+            let textColor = 'text-emerald-300'; 
+            let borderColor = 'border-emerald-500'; 
+            let arcBeamColor = ['#10B981', '#34D399']; 
+            let drawArc = false;
+            
             if(logText.includes('FATAL') || logText.includes('BOUNCE') || logText.includes('NOT exist') || logText.includes('[-]') || logText.includes('DEAD')) {
-                textColor = 'text-red-400'; borderColor = 'border-red-500'; arcBeamColor = ['#EF4444', '#F87171']; drawArc = true;
-            } else if (logText.includes('SUCCESS') || logText.includes('SAFE') || logText.includes('VALID') || logText.includes('[+]')) drawArc = true;
+                textColor = 'text-red-400'; 
+                borderColor = 'border-red-500'; 
+                arcBeamColor = ['#EF4444', '#F87171']; 
+                drawArc = true;
+            } else if (logText.includes('SUCCESS') || logText.includes('SAFE') || logText.includes('VALID') || logText.includes('[+]')) {
+                drawArc = true;
+            }
+            
             let cleanLog = logText;
+            
             if (logText.includes('| COORDS:')) {
-                const parts = logText.split('| COORDS: '); cleanLog = parts[0]; const coordString = parts[1].trim().split(' TO ');
+                const parts = logText.split('| COORDS: '); 
+                cleanLog = parts[0]; 
+                const coordString = parts[1].trim().split(' TO ');
+                
                 if (coordString.length === 2) {
-                    const start = coordString[0].split(','); const end = coordString[1].split(',');
-                    arcData.push({ startLat: parseFloat(start[0]), startLng: parseFloat(start[1]), endLat: parseFloat(end[0]), endLng: parseFloat(end[1]), color: arcBeamColor });
-                    if (arcData.length > 40) arcData.shift(); window.world.arcsData([...arcData]); 
+                    const start = coordString[0].split(','); 
+                    const end = coordString[1].split(',');
+                    arcData.push({ 
+                        startLat: parseFloat(start[0]), 
+                        startLng: parseFloat(start[1]), 
+                        endLat: parseFloat(end[0]), 
+                        endLng: parseFloat(end[1]), 
+                        color: arcBeamColor 
+                    });
+                    
+                    if (arcData.length > 40) arcData.shift(); 
+                    window.world.arcsData([...arcData]); 
                 }
             } else if (drawArc) {
-                const potentialTargets = mapLabels.filter(h => h.type !== 'origin'); const hub = potentialTargets[Math.floor(Math.random() * potentialTargets.length)];
-                const tgtLat = hub.lat + (Math.random() - 0.5) * 2; const tgtLng = hub.lng + (Math.random() - 0.5) * 2;
-                arcData.push({ startLat: mxOrigin.lat, startLng: mxOrigin.lng, endLat: tgtLat, endLng: tgtLng, color: arcBeamColor });
-                if (arcData.length > 40) arcData.shift(); window.world.arcsData([...arcData]); 
+                const potentialTargets = mapLabels.filter(h => h.type !== 'origin'); 
+                const hub = potentialTargets[Math.floor(Math.random() * potentialTargets.length)];
+                const tgtLat = hub.lat + (Math.random() - 0.5) * 2; 
+                const tgtLng = hub.lng + (Math.random() - 0.5) * 2;
+                
+                arcData.push({ 
+                    startLat: mxOrigin.lat, 
+                    startLng: mxOrigin.lng, 
+                    endLat: tgtLat, 
+                    endLng: tgtLng, 
+                    color: arcBeamColor 
+                });
+                
+                if (arcData.length > 40) arcData.shift(); 
+                window.world.arcsData([...arcData]); 
             }
-            const logLine = document.createElement('div'); logLine.className = `feed-item border-l-2 pl-2 py-1 ${borderColor} bg-slate-800/30 ${textColor} font-mono text-[10px] break-all`;
-            logLine.innerText = `> ${cleanLog.trim()}`; feed.appendChild(logLine); feed.scrollTop = feed.scrollHeight;
-            if (feed.children.length > 100) feed.removeChild(feed.firstChild);
+            
+            const logLine = document.createElement('div'); 
+            logLine.className = `feed-item border-l-2 pl-2 py-1 ${borderColor} bg-slate-800/30 ${textColor} font-mono text-[10px] break-all`;
+            logLine.innerText = `> ${cleanLog.trim()}`; 
+            feed.appendChild(logLine); 
+            feed.scrollTop = feed.scrollHeight;
+            
+            if (feed.children.length > 100) {
+                feed.removeChild(feed.firstChild);
+            }
         });
 
         // --- TAB SWITCHING ---
         function switchTab(tab) {
             ['overlord', 'users', 'staff', 'finance', 'config', 'broadcast', 'support', 'security'].forEach(id => {
-                const btn = document.getElementById('tab-' + id); if(btn) btn.classList.remove('active-tab');
-                const view = document.getElementById('view-' + id); if(view) view.classList.add('hidden');
+                const btn = document.getElementById('tab-' + id); 
+                if(btn) btn.classList.remove('active-tab');
+                
+                const view = document.getElementById('view-' + id); 
+                if(view) view.classList.add('hidden');
             });
-            const activeBtn = document.getElementById('tab-' + tab); if(activeBtn) activeBtn.classList.add('active-tab', 'text-slate-200');
+            
+            const activeBtn = document.getElementById('tab-' + tab); 
+            if(activeBtn) activeBtn.classList.add('active-tab', 'text-slate-200');
+            
             document.getElementById('view-' + tab).classList.remove('hidden');
+            
             const header = document.getElementById('globalTabHeader');
-            if(tab === 'overlord') { header.classList.add('hidden'); if(window.world) setTimeout(() => window.dispatchEvent(new Event('resize')), 100); } 
-            else { header.classList.remove('hidden'); header.classList.add('flex'); }
+            if(tab === 'overlord') { 
+                header.classList.add('hidden'); 
+                if(window.world) {
+                    setTimeout(() => window.dispatchEvent(new Event('resize')), 100); 
+                }
+            } else { 
+                header.classList.remove('hidden'); 
+                header.classList.add('flex'); 
+            }
+            
             const titles = {
                 'users': ['Client Vaults', 'Manage operator identities, manual credit overrides, and security bans.'],
                 'staff': ['Staff IAM', 'Provision restricted accounts and manage internal team security clearance.'],
@@ -502,32 +812,71 @@
                 'broadcast': ['Broadcast Station', 'Push instant notification banners to all active operator terminals.'],
                 'support': ['Integrated Helpdesk', 'Resolve user tickets and manage apology credit injections.']
             };
-            if(titles[tab]) { document.getElementById('pageTitle').innerText = titles[tab][0]; document.getElementById('pageDesc').innerText = titles[tab][1]; }
-            const sidebar = document.getElementById('sidebar'); if(!sidebar.classList.contains('-translate-x-full')) toggleSidebar();
+            
+            if(titles[tab]) { 
+                document.getElementById('pageTitle').innerText = titles[tab][0]; 
+                document.getElementById('pageDesc').innerText = titles[tab][1]; 
+            }
+            
+            const sidebar = document.getElementById('sidebar'); 
+            if(!sidebar.classList.contains('-translate-x-full')) {
+                toggleSidebar();
+            }
         }
-        window.addEventListener('resize', () => { if(window.world && document.getElementById('view-overlord').classList.contains('block')) window.world.width(window.innerWidth).height(window.innerHeight); });
+        
+        window.addEventListener('resize', () => { 
+            if(window.world && document.getElementById('view-overlord').classList.contains('block')) {
+                window.world.width(window.innerWidth).height(window.innerHeight); 
+            }
+        });
 
-        // --- AUTH ---
+        // --- AUTHENTICATION ---
         async function handleAdminLogin() {
-            const email = document.getElementById('authEmail').value.trim(); const password = document.getElementById('authPassword').value;
-            const msg = document.getElementById('authMessage'); if(!email || !password) return;
+            const email = document.getElementById('authEmail').value.trim(); 
+            const password = document.getElementById('authPassword').value;
+            const msg = document.getElementById('authMessage'); 
+            
+            if(!email || !password) return;
+
             const { data, error } = await _supabase.auth.signInWithPassword({ email, password });
-            if (error) { msg.innerText = "ACCESS DENIED: " + error.message; msg.classList.remove('hidden'); return; }
+            
+            if (error) { 
+                msg.innerText = "ACCESS DENIED: " + error.message; 
+                msg.classList.remove('hidden'); 
+                return; 
+            }
+
             document.getElementById('adminAuthContainer').classList.add('hidden');
             document.getElementById('staffIdentityDisplay').innerText = `ID: ${data.user.email} [SECURE]`;
-            switchTab('overlord'); fetchAllData(); initRealtimeSubscriptions();
+            
+            switchTab('overlord'); 
+            fetchAllData(); 
+            initRealtimeSubscriptions();
         }
-        async function handleAdminSignOut() { await _supabase.auth.signOut(); document.getElementById('adminAuthContainer').classList.remove('hidden'); }
+        
+        async function handleAdminSignOut() { 
+            await _supabase.auth.signOut(); 
+            document.getElementById('adminAuthContainer').classList.remove('hidden'); 
+        }
 
         // --- REAL-TIME SUPABASE CRUD OPERATIONS ---
-        function fetchAllData() { fetchRealUsers(); fetchRealStaff(); fetchSupportTickets(); }
+        function fetchAllData() { 
+            fetchRealUsers(); 
+            fetchRealStaff(); 
+            fetchSupportTickets(); 
+        }
 
         // 1. Users & Finance
         async function fetchRealUsers() {
             const { data: creditsData } = await _supabase.from('user_credits').select('*');
+            
             if(creditsData) {
-                loadedUsers = creditsData; renderUsersTable(loadedUsers);
-                let totalMRR = 0; let paidCount = 0;
+                loadedUsers = creditsData; 
+                renderUsersTable(loadedUsers);
+                
+                let totalMRR = 0; 
+                let paidCount = 0;
+                
                 loadedUsers.forEach(u => {
                     if(u.plan_tier === 'Starter') { totalMRR += 29; paidCount++; }
                     if(u.plan_tier === 'Growth') { totalMRR += 79; paidCount++; }
@@ -535,12 +884,16 @@
                     if(u.plan_tier === 'Scale') { totalMRR += 399; paidCount++; }
                     if(u.plan_tier === 'Apex') { totalMRR += 799; paidCount++; }
                 });
+                
                 document.getElementById('liveMrrDisplay').innerText = '$' + totalMRR.toLocaleString() + '.00';
                 document.getElementById('livePaidCount').innerText = paidCount;
             }
         }
+        
         function renderUsersTable(usersArray) {
-            const tbody = document.getElementById('adminUserTableBody'); tbody.innerHTML = '';
+            const tbody = document.getElementById('adminUserTableBody'); 
+            tbody.innerHTML = '';
+            
             usersArray.forEach(u => {
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-800/30 border-b border-slate-800/50">
@@ -548,21 +901,34 @@
                         <td class="p-4"><span class="text-[10px] bg-slate-800 border border-slate-700 px-2 py-1 rounded text-sky-300 font-bold uppercase tracking-widest">${u.plan_tier || 'Sandbox'}</span></td>
                         <td class="p-4 font-mono text-right text-emerald-400">${(u.integrity_vault || 0).toLocaleString()}</td>
                         <td class="p-4 font-mono text-right text-amber-400">${(u.discovery_vault || 0).toLocaleString()}</td>
-                        <td class="p-4 text-right whitespace-nowrap"><button onclick="openRealCreditOverride('${u.id}', '${u.plan_tier}', ${u.integrity_vault || 0}, ${u.discovery_vault || 0})" class="text-[10px] bg-slate-800 hover:bg-sky-600 text-sky-400 hover:text-white px-3 py-2 rounded-lg transition-colors uppercase font-bold tracking-widest border border-slate-700">Edit</button></td>
+                        <td class="p-4 text-right whitespace-nowrap">
+                            <button onclick="openRealCreditOverride('${u.id}', '${u.plan_tier}', ${u.integrity_vault || 0}, ${u.discovery_vault || 0})" class="text-[10px] bg-slate-800 hover:bg-sky-600 text-sky-400 hover:text-white px-3 py-2 rounded-lg transition-colors uppercase font-bold tracking-widest border border-slate-700">Edit</button>
+                        </td>
                     </tr>
                 `;
             });
         }
-        function filterUsers() { const query = document.getElementById('adminUserSearch').value.toLowerCase(); renderUsersTable(loadedUsers.filter(u => (u.id && u.id.toLowerCase().includes(query)))); }
+        
+        function filterUsers() { 
+            const query = document.getElementById('adminUserSearch').value.toLowerCase(); 
+            renderUsersTable(loadedUsers.filter(u => (u.id && u.id.toLowerCase().includes(query)))); 
+        }
+        
         function openRealCreditOverride(userId, plan, wash, hunt) {
-            targetOverrideUserId = userId; document.getElementById('overrideUserId').innerText = userId;
-            document.getElementById('overrideWash').value = wash; document.getElementById('overrideHunt').value = hunt;
+            targetOverrideUserId = userId; 
+            document.getElementById('overrideUserId').innerText = userId;
+            document.getElementById('overrideWash').value = wash; 
+            document.getElementById('overrideHunt').value = hunt;
             document.getElementById('creditOverrideModal').classList.remove('hidden');
         }
+        
         async function executeRealCreditOverride() {
             await _supabase.from('user_credits').update({
-                integrity_vault: parseInt(document.getElementById('overrideWash').value), discovery_vault: parseInt(document.getElementById('overrideHunt').value), plan_tier: document.getElementById('overridePlan').value
+                integrity_vault: parseInt(document.getElementById('overrideWash').value), 
+                discovery_vault: parseInt(document.getElementById('overrideHunt').value), 
+                plan_tier: document.getElementById('overridePlan').value
             }).eq('id', targetOverrideUserId);
+            
             document.getElementById('creditOverrideModal').classList.add('hidden');
         }
 
@@ -570,28 +936,58 @@
         async function fetchRealStaff() {
             const tbody = document.getElementById('staffTableBody');
             const { data, error } = await _supabase.from('staff_users').select('*');
-            if (error || !data || data.length === 0) { tbody.innerHTML = `<tr><td colspan="4" class="p-10 text-center text-slate-500">No staff found. Ensure 'staff_users' table exists in Supabase.</td></tr>`; return; }
+            
+            if (error || !data || data.length === 0) { 
+                tbody.innerHTML = `<tr><td colspan="4" class="p-10 text-center text-slate-500">No staff found. Check database.</td></tr>`; 
+                return; 
+            }
+            
             tbody.innerHTML = '';
+            
             data.forEach(s => {
                 let badgeColor = s.role === 'Admin' ? 'text-blue-400 border-blue-500/20 bg-blue-500/10' : 'text-purple-400 border-purple-500/20 bg-purple-500/10';
+                
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-800/30 border-b border-slate-800/50">
                         <td class="p-4"><div class="font-medium text-white">${s.email}</div></td>
                         <td class="p-4"><span class="${badgeColor} border text-[9px] px-2 py-1 rounded tracking-widest uppercase">${s.role}</span></td>
                         <td class="p-4 text-center"><span class="text-[10px] text-slate-400">${s.status || 'Active'}</span></td>
-                        <td class="p-4 text-right"><button onclick="revokeRealStaff('${s.id}')" class="text-red-400 hover:text-white bg-red-500/10 hover:bg-red-500 border border-red-500/30 px-3 py-1.5 rounded text-[10px] uppercase font-bold transition-colors">Revoke</button></td>
+                        <td class="p-4 text-right">
+                            <button onclick="revokeRealStaff('${s.id}')" class="text-red-400 hover:text-white bg-red-500/10 hover:bg-red-500 border border-red-500/30 px-3 py-1.5 rounded text-[10px] uppercase font-bold transition-colors">Revoke</button>
+                        </td>
                     </tr>
                 `;
             });
         }
+        
         async function inviteRealStaff() {
-            const email = document.getElementById('inviteStaffEmail').value; const role = document.getElementById('inviteStaffRole').value;
-            if(!email) return alert("Email required.");
-            const btn = document.getElementById('btnInviteStaff'); btn.innerText = "ADDING..."; btn.disabled = true;
-            const { error } = await _supabase.from('staff_users').insert([{ email: email, role: role, status: 'Active' }]);
-            btn.disabled = false; btn.innerText = "ADD OPERATIVE";
-            if (error) alert("Ensure table exists: " + error.message); else document.getElementById('inviteStaffEmail').value = '';
+            const email = document.getElementById('inviteStaffEmail').value; 
+            const role = document.getElementById('inviteStaffRole').value;
+            
+            if(!email) {
+                return alert("Email required.");
+            }
+            
+            const btn = document.getElementById('btnInviteStaff'); 
+            btn.innerText = "ADDING..."; 
+            btn.disabled = true;
+            
+            const { error } = await _supabase.from('staff_users').insert([{ 
+                email: email, 
+                role: role, 
+                status: 'Active' 
+            }]);
+            
+            btn.disabled = false; 
+            btn.innerText = "ADD OPERATIVE";
+            
+            if (error) {
+                alert("Error: " + error.message); 
+            } else {
+                document.getElementById('inviteStaffEmail').value = '';
+            }
         }
+        
         async function revokeRealStaff(id) {
             if(confirm("Permanently revoke access for this operative?")) {
                 await _supabase.from('staff_users').delete().eq('id', id);
@@ -602,33 +998,57 @@
         async function fetchSupportTickets() {
             const tbody = document.getElementById('supportTableBody');
             const { data, error } = await _supabase.from('support_tickets').select('*');
-            if (error || !data || data.length === 0) { tbody.innerHTML = `<tr><td colspan="4" class="p-10 text-center text-slate-500">No open tickets. Ensure 'support_tickets' table exists.</td></tr>`; return; }
+            
+            if (error || !data || data.length === 0) { 
+                tbody.innerHTML = `<tr><td colspan="4" class="p-10 text-center text-slate-500">No open tickets.</td></tr>`; 
+                return; 
+            }
+            
             tbody.innerHTML = '';
+            
             data.forEach(t => {
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-800/30 border-b border-slate-800/50">
                         <td class="p-4"><div class="font-bold text-white">${t.user_email}</div></td>
                         <td class="p-4"><div class="font-medium text-amber-400">${t.issue}</div></td>
-                        <td class="p-4 text-center"><span class="bg-red-500/10 text-red-400 border border-red-500/20 text-[9px] px-2 py-1 rounded uppercase tracking-widest font-bold">${t.status}</span></td>
-                        <td class="p-4 text-right"><button onclick="closeRealTicket('${t.id}')" class="bg-slate-800 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-slate-700 transition-colors">Mark Resolved</button></td>
+                        <td class="p-4 text-center">
+                            <span class="bg-red-500/10 text-red-400 border border-red-500/20 text-[9px] px-2 py-1 rounded uppercase tracking-widest font-bold">${t.status}</span>
+                        </td>
+                        <td class="p-4 text-right">
+                            <button onclick="closeRealTicket('${t.id}')" class="bg-slate-800 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-slate-700 transition-colors">Mark Resolved</button>
+                        </td>
                     </tr>
                 `;
             });
         }
-        async function closeRealTicket(id) { await _supabase.from('support_tickets').update({ status: 'Resolved' }).eq('id', id); }
+        
+        async function closeRealTicket(id) { 
+            await _supabase.from('support_tickets').update({ status: 'Resolved' }).eq('id', id); 
+        }
 
         async function pushRealBroadcast() {
-            await _supabase.from('system_broadcasts').insert([{ message: document.getElementById('broadcastMessage').value, type: document.getElementById('broadcastType').value, created_at: new Date() }]);
-            document.getElementById('broadcastMessage').value = ''; alert('Broadcast Sent!');
+            await _supabase.from('system_broadcasts').insert([{ 
+                message: document.getElementById('broadcastMessage').value, 
+                type: document.getElementById('broadcastType').value, 
+                created_at: new Date() 
+            }]);
+            
+            document.getElementById('broadcastMessage').value = ''; 
+            alert('Broadcast Sent!');
         }
 
         // --- SUPABASE WEBSOCKET SUBSCRIPTIONS ---
         function initRealtimeSubscriptions() {
-            // This channel listens to ANY change in your database and automatically refreshes the tables on your screen.
             _supabase.channel('admin_live_data')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'user_credits' }, payload => { fetchRealUsers(); })
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'staff_users' }, payload => { fetchRealStaff(); })
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'support_tickets' }, payload => { fetchSupportTickets(); })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'user_credits' }, payload => { 
+                    fetchRealUsers(); 
+                })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'staff_users' }, payload => { 
+                    fetchRealStaff(); 
+                })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'support_tickets' }, payload => { 
+                    fetchSupportTickets(); 
+                })
                 .subscribe((status) => {
                     if(status === 'SUBSCRIBED') {
                         document.getElementById('realtimeStatus').innerText = 'Supabase Sync: ACTIVE';
@@ -639,7 +1059,13 @@
 
         // Auto-login check
         _supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session) { document.getElementById('adminAuthContainer').classList.add('hidden'); document.getElementById('staffIdentityDisplay').innerText = `ID: ${session.user.email} [SECURE]`; fetchAllData(); initRealtimeSubscriptions(); switchTab('overlord'); }
+            if (session) { 
+                document.getElementById('adminAuthContainer').classList.add('hidden'); 
+                document.getElementById('staffIdentityDisplay').innerText = `ID: ${session.user.email} [SECURE]`; 
+                fetchAllData(); 
+                initRealtimeSubscriptions(); 
+                switchTab('overlord'); 
+            }
         });
     </script>
 </body>
