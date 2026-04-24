@@ -570,17 +570,21 @@
             cmdInput.value = '';
         }
 
-        // --- PHASE 2: WEBGL GLOBE.GL INIT (EMPTY START) ---
+        // --- PHASE 2: HYBRID WEBGL GLOBE INIT ---
+        let arcData = [];
+        
         function initGlobe() {
             const globeContainer = document.getElementById('globeViz');
             window.world = Globe()
                 (globeContainer)
                 .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg')
                 .backgroundColor('#050810') 
-                .ringColor('color')
-                .ringMaxRadius('maxR')
-                .ringPropagationSpeed('propagationSpeed')
-                .ringRepeatPeriod('repeatPeriod')
+                .arcColor('color')
+                .arcDashLength(0.4)
+                .arcDashGap(0.2)
+                .arcDashInitialGap(() => Math.random())
+                .arcDashAnimateTime(1500) // Speed of the glowing beam
+                .arcsData(arcData)
                 .pointOfView({ lat: 20, lng: 0, altitude: 2.2 }); 
                 
             window.world.controls().autoRotate = true;
@@ -589,10 +593,9 @@
         }
         initGlobe();
 
-        // --- PHASE 3: WEBSOCKET LIVE STREAM ---
-        const socket = io('https://pulse.mailvah.com'); // Connects directly through your Nginx Tunnel
+        // --- PHASE 3: WEBSOCKET LIVE STREAM WITH ARC MAPPING ---
+        const socket = io('https://pulse.mailvah.com'); 
         const feed = document.getElementById('liveActionFeed');
-        let gData = [];
 
         socket.on('sys-stats', (sys) => {
             document.getElementById('statCpu').innerText = sys.cpu_load + '%';
@@ -608,47 +611,50 @@
             const waitingText = document.getElementById('feedWaiting');
             if (waitingText) waitingText.remove();
 
-            // 1. Color Code the Logs dynamically based on verification output
+            // Setup styling
             let textColor = 'text-emerald-300';
             let borderColor = 'border-emerald-500';
-            let ringColor = '#10B981'; // Green Ping for Safe
+            let arcBeamColor = ['#10B981', '#34D399']; // Green gradient for safe
 
-            if(logText.includes('FATAL') || logText.includes('BOUNCE') || logText.includes('NOT exist')) {
+            if(logText.includes('FATAL') || logText.includes('BOUNCE') || logText.includes('NOT exist') || logText.includes('[-]')) {
                 textColor = 'text-red-400';
                 borderColor = 'border-red-500';
-                ringColor = '#EF4444'; // Red Ping for Bounces
-            } else if (logText.includes('NETWORK') || logText.includes('DNS') || logText.includes('MAILVAH')) {
-                textColor = 'text-sky-300';
-                borderColor = 'border-sky-500';
-                ringColor = '#38BDF8'; // Blue Ping for Handshakes
+                arcBeamColor = ['#EF4444', '#F87171']; // Red gradient for bounce
             }
 
-            // 2. Append to Scrollable Feed
+            // Extract the Coords if they exist
+            let cleanLog = logText;
+            if (logText.includes('| COORDS:')) {
+                const parts = logText.split('| COORDS: ');
+                cleanLog = parts[0]; // Remove coords from the UI feed text
+                
+                // Parse coordinates for the globe
+                const coordString = parts[1].trim().split(' TO ');
+                if (coordString.length === 2) {
+                    const start = coordString[0].split(',');
+                    const end = coordString[1].split(',');
+                    
+                    const newArc = {
+                        startLat: parseFloat(start[0]),
+                        startLng: parseFloat(start[1]),
+                        endLat: parseFloat(end[0]),
+                        endLng: parseFloat(end[1]),
+                        color: arcBeamColor
+                    };
+                    
+                    arcData.push(newArc);
+                    if (arcData.length > 20) arcData.shift(); // Keep globe memory clean
+                    window.world.arcsData(arcData);
+                }
+            }
+
+            // Append to UI
             const logLine = document.createElement('div');
             logLine.className = `feed-item border-l-2 pl-2 py-1 ${borderColor} bg-slate-800/30 ${textColor} font-mono text-[10px] break-all`;
-            logLine.innerText = `> ${logText}`;
+            logLine.innerText = `> ${cleanLog.trim()}`;
             feed.appendChild(logLine);
-            
-            // Auto-Scroll to bottom to emulate a terminal
             feed.scrollTop = feed.scrollHeight;
-            
-            // Memory Protection: Keep only the last 100 lines so your browser doesn't crash
-            if (feed.children.length > 100) {
-                feed.removeChild(feed.firstChild);
-            }
-
-            // 3. Ping the Globe Reactively
-            const newPing = {
-                lat: (Math.random() - 0.5) * 160,
-                lng: (Math.random() - 0.5) * 360,
-                maxR: Math.random() * 5 + 3,
-                propagationSpeed: 4,
-                repeatPeriod: 800,
-                color: ringColor
-            };
-            gData.push(newPing);
-            if(gData.length > 15) gData.shift(); // Keep globe clean
-            window.world.ringsData(gData);
+            if (feed.children.length > 100) feed.removeChild(feed.firstChild);
         });
 
         // --- TAB NAVIGATION LOGIC ---
