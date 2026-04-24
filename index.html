@@ -29,7 +29,6 @@
         .hud-overlay > * { pointer-events: auto; }
         input[type=range]::-webkit-slider-thumb { appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #f87171; cursor: pointer; border: 2px solid #fff; }
         
-        /* Smooth fade for the live action feed */
         @keyframes slideInFade {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -599,34 +598,6 @@
         }
 
         initGlobe();
-        
-        // --- UI SIMULATION FOR LIVE FEED ---
-        const trapTypes = ['Spam-Trap', 'Hard Bounce', 'Catch-All'];
-        const mockDomains = ['agency.io', 'techstart.com', 'b2bleads.net', 'sales.co'];
-        
-        function injectSimulatedLog() {
-            const feed = document.getElementById('liveActionFeed');
-            const waitingText = document.getElementById('feedWaiting');
-            if(waitingText) waitingText.remove();
-            
-            const isTrap = Math.random() > 0.5;
-            const trapType = trapTypes[Math.floor(Math.random() * trapTypes.length)];
-            const domain = mockDomains[Math.floor(Math.random() * mockDomains.length)];
-            
-            const logLine = document.createElement('div');
-            logLine.className = "feed-item border-l-2 pl-2 py-1 border-slate-700 bg-slate-800/30";
-            
-            if(isTrap) {
-                logLine.innerHTML = `<span class="text-red-400">[THREAT]</span> ${trapType} blocked from ${domain} <span class="text-slate-500 float-right">Just now</span>`;
-                logLine.style.borderLeftColor = '#ef4444';
-            } else {
-                logLine.innerHTML = `<span class="text-emerald-400">[WASH]</span> 140 valid emails passed for ${domain} <span class="text-slate-500 float-right">Just now</span>`;
-                logLine.style.borderLeftColor = '#10b981';
-            }
-            
-            feed.prepend(logLine);
-            if(feed.children.length > 25) feed.lastChild.remove();
-        }
 
         // --- LIVE HOSTWINDS TELEMETRY POLLING VIA NGINX API WRAPPER ---
         setInterval(async () => {
@@ -649,12 +620,22 @@
                     document.getElementById('statWorkers').innerText = sys.workers + '/8';
                     document.querySelector('#statWorkers + div').innerHTML = `<i class="fa-solid fa-check-circle"></i> ${sys.status} (${sys.ram_free}MB Free)`;
                     
-                    // Simulate Feed Data (To be replaced with real PM2 logs later)
-                    if(Math.random() > 0.3) injectSimulatedLog();
+                    // --- REAL ENGINE LOG INTEGRATION ---
+                    const feed = document.getElementById('liveActionFeed');
+                    if (sys.live_logs && sys.live_logs.length > 0) {
+                        const waitingText = document.getElementById('feedWaiting');
+                        if (waitingText) waitingText.remove();
+                        feed.innerHTML = ''; // Clear old logs to show fresh ones
+                        sys.live_logs.reverse().forEach(logText => {
+                            const logLine = document.createElement('div');
+                            logLine.className = "feed-item border-l-2 pl-2 py-1 border-emerald-500 bg-slate-800/30 text-emerald-300 truncate";
+                            logLine.innerText = `> ${logText}`;
+                            feed.appendChild(logLine);
+                        });
+                    }
                 }
             } catch (e) {
                 console.error("Telemetry Bridge Offline or IP mismatch.");
-                // Leaving silent to prevent UI flashing if one ping drops
             }
         }, 5000); // Polls every 5 seconds securely to save RAM
 
