@@ -341,10 +341,10 @@
 
         <div id="view-finance" class="hidden px-4 md:px-10 pb-10">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div class="glass-panel p-6 rounded-2xl border-t-2 border-t-emerald-500">
-                    <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2 flex justify-between">Total MRR (Live) <i class="fa-solid fa-arrow-trend-up text-emerald-500"></i></div>
-                    <div class="text-4xl font-black text-white mb-1 font-mono" id="liveMrrDisplay">$0.00</div>
-                    <div class="text-xs text-emerald-400">Calculated from active vaults</div>
+                <div class="glass-panel p-6 rounded-2xl border-t-2 border-t-emerald-500 flex flex-col justify-center">
+                    <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2 flex justify-between">Total Revenue (Live Gateway) <i class="fa-solid fa-arrow-trend-up text-emerald-500"></i></div>
+                    <div class="text-4xl font-black text-white mb-1 font-mono" id="liveMrrDisplay">₦0.00</div>
+                    <div class="text-xs text-emerald-400">Pulled directly from Flutterwave</div>
                 </div>
                 
                 <div class="glass-panel p-6 rounded-2xl border-t-2 border-t-red-500">
@@ -361,23 +361,22 @@
             </div>
 
             <div class="glass-panel p-6 md:p-8 rounded-2xl border-t-2 border-t-sky-500 mb-8">
-                <h3 class="text-xl font-bold text-white mb-2"><i class="fa-solid fa-money-bill-transfer text-sky-400 mr-2"></i> Flutterwave Gateway Sync</h3>
-                <p class="text-sm text-slate-400 mb-6">Fetch raw transaction data securely via Supabase Ledger Table.</p>
+                <h3 class="text-xl font-bold text-white mb-2"><i class="fa-solid fa-money-bill-transfer text-sky-400 mr-2"></i> Flutterwave Live Ledger Sync</h3>
+                <p class="text-sm text-slate-400 mb-6">Fetch raw transaction data securely via Supabase Edge Functions.</p>
                 
                 <div class="flex flex-col md:flex-row gap-4 mb-4">
-                    <input type="password" id="fwSecretKey" readonly value="FLWPUBK-dc0754094fea48efe0f9cc3fe45ed853-X" class="flex-1 bg-[#050914] border border-slate-700 p-3.5 rounded-xl text-sm text-slate-500 outline-none font-mono cursor-not-allowed">
+                    <input type="password" id="fwSecretKey" readonly value="FLW_SECRET_KEY Hidden in Edge Vault" class="flex-1 bg-[#050914] border border-slate-700 p-3.5 rounded-xl text-sm text-emerald-500 outline-none font-mono cursor-not-allowed text-center">
                     <button onclick="syncFinancials()" id="fetchLedgerBtn" class="action-btn bg-sky-600 hover:bg-sky-500 text-white font-bold px-8 py-3.5 rounded-xl shadow-lg shadow-sky-500/20 transition-all text-sm tracking-widest flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-cloud-arrow-down"></i> FETCH LEDGER
+                        <i class="fa-solid fa-cloud-arrow-down"></i> FETCH LIVE LEDGER
                     </button>
                 </div>
-                <p class="text-[10px] text-slate-500 uppercase tracking-widest"><i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Note: Public Keys cannot fetch transactions via browser. Backend proxy securely bridges webhooks to Supabase.</p>
                 
                 <div id="ledgerContainer" class="hidden mt-6 border border-slate-700 rounded-xl overflow-hidden bg-slate-900/50">
                     <div class="px-4 py-3 bg-slate-950/80 border-b border-slate-800 text-[10px] font-bold text-slate-400 uppercase tracking-widest flex justify-between items-center">
-                        <span>Recent Transactions (Synced)</span>
-                        <span class="text-emerald-500"><i class="fa-solid fa-circle-check"></i></span>
+                        <span>Real-Time Transactions (Flutterwave API)</span>
+                        <span class="text-emerald-500"><i class="fa-solid fa-bolt"></i></span>
                     </div>
-                    <div class="overflow-x-auto custom-scrollbar max-h-48">
+                    <div class="overflow-x-auto custom-scrollbar max-h-64">
                         <table class="w-full text-left">
                             <thead class="bg-slate-900/50 text-[10px] text-slate-500 uppercase tracking-widest sticky top-0">
                                 <tr>
@@ -421,7 +420,7 @@
                         <div class="p-4 text-center text-slate-500 text-xs">Fetching live promos...</div>
                     </div>
                     
-                    <button onclick="alert('Promo generation engine opening...')" class="action-btn w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-lg text-xs transition-colors border border-slate-700 mt-2">
+                    <button class="action-btn w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-lg text-xs transition-colors border border-slate-700 mt-2">
                         <i class="fa-solid fa-plus mr-1"></i> CREATE NEW PROMO
                     </button>
                 </div>
@@ -977,7 +976,7 @@
             fetchFinanceData();
         }
 
-        // 1. Users & Finance Stats
+        // 1. Users & Vaults
         async function fetchRealUsers() {
             const { data: creditsData } = await _supabase.from('user_credits').select('*');
             
@@ -985,18 +984,12 @@
                 loadedUsers = creditsData; 
                 renderUsersTable(loadedUsers);
                 
-                let totalMRR = 0; 
                 let paidCount = 0;
                 
                 loadedUsers.forEach(u => {
-                    if(u.plan_tier === 'Starter') { totalMRR += 29; paidCount++; }
-                    if(u.plan_tier === 'Growth') { totalMRR += 79; paidCount++; }
-                    if(u.plan_tier === 'Pro') { totalMRR += 149; paidCount++; }
-                    if(u.plan_tier === 'Scale') { totalMRR += 399; paidCount++; }
-                    if(u.plan_tier === 'Apex') { totalMRR += 799; paidCount++; }
+                    if(u.plan_tier !== 'Sandbox') paidCount++;
                 });
                 
-                document.getElementById('liveMrrDisplay').innerText = '$' + totalMRR.toLocaleString() + '.00';
                 document.getElementById('livePaidCount').innerText = paidCount;
             }
         }
@@ -1100,46 +1093,58 @@
             }
         }
 
-        // Flutterwave Ledger Fetch
+        // Edge Function FLUTTERWAVE Live Fetch
         async function syncFinancials() {
             const btn = document.getElementById('fetchLedgerBtn');
             const originalText = btn.innerHTML;
-            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> FETCHING API...`;
+            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> FETCHING LIVE LEDGER...`;
             btn.disabled = true;
 
-            const { data, error } = await _supabase.from('flutterwave_ledger').select('*').order('created_at', { ascending: false });
-            
-            // Simulating a secure backend handshake delay for visual authenticity
-            setTimeout(() => {
+            try {
+                // Call the Supabase Edge Function securely
+                const { data, error } = await _supabase.functions.invoke('fetch-flutterwave');
+                
                 btn.innerHTML = originalText;
                 btn.disabled = false;
                 
-                if (error) {
-                    alert("Sync Error: " + error.message);
-                    return;
-                }
-                
+                if (error) throw error;
+                if (data.error) throw new Error(data.error);
+
                 document.getElementById('ledgerContainer').classList.remove('hidden');
                 const tbody = document.getElementById('ledgerTableBody');
                 tbody.innerHTML = '';
                 
-                if(!data || data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-500">No recent transactions synced.</td></tr>';
+                const transactions = data.data || [];
+                
+                if(transactions.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-500">No live transactions found on Flutterwave.</td></tr>';
                     return;
                 }
                 
-                data.forEach(tx => {
+                let realRevenue = 0;
+
+                transactions.forEach(tx => {
+                    if(tx.status === 'successful') realRevenue += tx.amount;
+
                     const statusColor = tx.status === 'successful' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-red-400 bg-red-500/10 border-red-500/20';
                     tbody.innerHTML += `
-                        <tr class="hover:bg-slate-800/30">
+                        <tr class="hover:bg-slate-800/30 border-b border-slate-800/50">
                             <td class="p-4 font-mono text-[10px] text-slate-400">${tx.tx_ref}</td>
-                            <td class="p-4 font-medium text-white">${tx.customer_email}</td>
-                            <td class="p-4 text-right font-mono">$${tx.amount}</td>
+                            <td class="p-4 font-medium text-white">${tx.customer.email}</td>
+                            <td class="p-4 text-right font-mono text-emerald-400">${tx.currency} ${tx.amount.toLocaleString()}</td>
                             <td class="p-4 text-center"><span class="border text-[9px] px-2 py-0.5 rounded tracking-widest uppercase ${statusColor}">${tx.status}</span></td>
                         </tr>
                     `;
                 });
-            }, 800);
+
+                // Update the MRR / Revenue card with ACTUAL cash values
+                document.getElementById('liveMrrDisplay').innerText = '₦' + realRevenue.toLocaleString();
+                
+            } catch (err) {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                alert("Edge Function Error: " + err.message + "\nEnsure you deployed 'fetch-flutterwave' and set FLW_SECRET_KEY.");
+            }
         }
 
         // 3. Staff Management
@@ -1293,13 +1298,6 @@
                 })
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'promo_codes' }, payload => { 
                     fetchFinanceData(); 
-                })
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'flutterwave_ledger' }, payload => { 
-                    // Silent update if the ledger tab is open
-                    const ledger = document.getElementById('ledgerContainer');
-                    if(ledger && !ledger.classList.contains('hidden')) {
-                        syncFinancials();
-                    }
                 })
                 .subscribe((status) => {
                     if(status === 'SUBSCRIBED') {
