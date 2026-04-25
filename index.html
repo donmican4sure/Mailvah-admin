@@ -434,15 +434,15 @@
                     <div class="grid grid-cols-2 md:grid-cols-5 gap-4 max-w-6xl mb-4">
                         <div class="glass-panel p-4 rounded-xl border-t-2 border-t-blue-500 pointer-events-auto bg-slate-900/80">
                             <div class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">PM2 Workers</div>
-                            <div class="text-2xl font-black text-white font-mono" id="statWorkers">8/8</div>
-                            <div class="text-[10px] text-blue-400 mt-1"><i class="fa-solid fa-check-circle"></i> Optimal (400MB Free)</div>
+                            <div class="text-2xl font-black text-white font-mono" id="statWorkers">Loading...</div>
+                            <div class="text-[10px] text-blue-400 mt-1"><i class="fa-solid fa-check-circle"></i> Awaiting telemetry...</div>
                         </div>
                         
                         <div class="glass-panel p-4 rounded-xl border-t-2 border-t-purple-500 pointer-events-auto bg-slate-900/80">
                             <div class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">Engine Load</div>
-                            <div class="text-2xl font-black text-white font-mono" id="statCpu">14%</div>
+                            <div class="text-2xl font-black text-white font-mono" id="statCpu">Loading...</div>
                             <div class="w-full bg-slate-800 h-1 mt-2 rounded overflow-hidden">
-                                <div class="bg-purple-500 h-full w-[14%]" id="barCpu"></div>
+                                <div class="bg-purple-500 h-full w-[0%]" id="barCpu"></div>
                             </div>
                         </div>
                         
@@ -454,15 +454,15 @@
                         
                         <div class="glass-panel p-4 rounded-xl border-t-2 border-t-amber-500 pointer-events-auto bg-slate-900/80">
                             <div class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">Port-25 Latency</div>
-                            <div class="text-2xl font-black text-white font-mono" id="statPing">42ms</div>
+                            <div class="text-2xl font-black text-white font-mono" id="statPing">Loading...</div>
                             <div class="text-[10px] text-amber-400 mt-1">Deep-Scan Handshake</div>
                         </div>
                         
                         <div class="glass-panel p-4 rounded-xl border-t-2 border-t-sky-500 pointer-events-auto flex flex-col justify-between bg-slate-900/80">
                             <div class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">Wash Velocity</div>
-                            <div class="text-2xl font-black text-white font-mono" id="statSpm">1,204 <span class="text-[10px] text-slate-500">req/m</span></div>
+                            <div class="text-2xl font-black text-white font-mono" id="statSpm">Loading...</div>
                             <div class="text-[10px] text-sky-400 mt-1 flex items-center">
-                                <div class="w-1.5 h-1.5 bg-sky-500 rounded-full mr-1 animate-ping"></div> ~120 Credits Burned/Min
+                                <div class="w-1.5 h-1.5 bg-sky-500 rounded-full mr-1 animate-ping"></div> Awaiting data
                             </div>
                         </div>
                     </div>
@@ -1374,6 +1374,17 @@
         const socket = io('https://pulse.mailvah.com'); 
         const feed = document.getElementById('liveActionFeed');
 
+        socket.on('connect_error', () => {
+            const feedEl = document.getElementById('liveActionFeed');
+            if (feedEl) {
+                feedEl.innerHTML = '<div class="p-10 text-center text-red-500 text-xs font-mono"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Telemetry offline. Unable to connect to pulse.mailvah.com</div>';
+            }
+            document.getElementById('statCpu').innerText = 'N/A';
+            document.getElementById('statWorkers').innerText = '0/0';
+            document.getElementById('statPing').innerText = 'N/A';
+            document.getElementById('statSpm').innerText = 'N/A';
+        });
+
         socket.on('sys-stats', (sys) => {
             const statCpu = document.getElementById('statCpu');
             const barCpu = document.getElementById('barCpu');
@@ -2069,13 +2080,13 @@
                 if(countBadge) countBadge.innerText = `${transactions.length} TXNs`;
                 
                 if (transactions.length === 0) { 
-                    if(tbody) tbody.innerHTML = '<div class="p-10 text-center text-slate-500 text-xs">No recent transactions synced from gateway.</div>'; 
+                    if(tbody) tbody.innerHTML = '<div class="p-10 text-center text-slate-500 text-xs">No live transactions found.</div>'; 
                     return; 
                 }
                 
                 let totalNGN = 0; 
                 let totalUSD = 0; 
-                let chartDataArray = [0,0,0,0,0,0]; 
+                const dailyRevenue = {};
                 
                 transactions.forEach((tx, index) => {
                     if (tx.status === 'successful') {
@@ -2083,8 +2094,11 @@
                         else if (tx.currency === 'USD') totalUSD += tx.amount; 
                         else totalUSD += (tx.amount / 100); 
                         
-                        setTimeout(() => fireFinancialArc(tx.currency), index * 300); 
-                        chartDataArray[index % 6] += (tx.currency === 'NGN' ? tx.amount : tx.amount * 1500); 
+                        setTimeout(() => fireFinancialArc(tx.currency), index * 200); 
+                        
+                        const day = new Date(tx.created_at).toLocaleDateString();
+                        if (!dailyRevenue[day]) dailyRevenue[day] = 0;
+                        dailyRevenue[day] += (tx.currency === 'NGN' ? tx.amount : tx.amount * 1500);
                     }
                     
                     const statusColor = tx.status === 'successful' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-red-400 bg-red-500/10 border-red-500/20'; 
@@ -2093,7 +2107,7 @@
                     
                     const row = document.createElement('div'); 
                     row.className = `grid grid-cols-12 gap-4 px-6 py-4 border-b border-slate-800/50 hover:bg-slate-900/80 transition-colors ticker-row items-center`; 
-                    row.style.animationDelay = `${index * 0.1}s`;
+                    row.style.animationDelay = `${index * 0.05}s`;
                     row.innerHTML = `
                         <div class="col-span-3 flex items-center gap-3">
                             <div class="w-8 h-8 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center">${icon}</div>
@@ -2123,9 +2137,14 @@
                 if(uDisp) uDisp.innerText = '$' + (totalUSD > 0 ? totalUSD.toLocaleString() : '0');
 
                 if (revenueChartInstance) {
-                    revenueChartInstance.data.datasets[0].data = [...chartDataArray.reverse(), null, null, null, null];
-                    const forecastData = calculateForecast(chartDataArray, 4);
-                    const projectedArray = [null, null, null, null, null, chartDataArray[chartDataArray.length-1], ...forecastData];
+                    const sortedDays = Object.keys(dailyRevenue).sort((a,b) => new Date(a) - new Date(b));
+                    let realDataArray = sortedDays.slice(-6).map(day => dailyRevenue[day]);
+                    while(realDataArray.length < 6) realDataArray.unshift(0);
+
+                    revenueChartInstance.data.datasets[0].data = [...realDataArray, null, null, null, null];
+                    
+                    const forecastData = calculateForecast(realDataArray, 4);
+                    const projectedArray = [null, null, null, null, null, realDataArray[realDataArray.length-1], ...forecastData];
                     
                     revenueChartInstance.data.datasets[1].data = projectedArray;
                     revenueChartInstance.update();
@@ -2141,12 +2160,12 @@
                 }
                 
                 updateGoalRing(totalNGN, totalUSD); 
-                showToast("API connection secured. Data synced.", "info");
+                showToast("Gateway connection secured. Data synced.", "info");
                 
             } catch (err) { 
                 btn.innerHTML = originalText; 
                 btn.disabled = false; 
-                showToast("Edge Function Error: " + err.message, 'error'); 
+                showToast("Gateway Error: " + err.message, 'error'); 
             }
         }
 
@@ -2188,7 +2207,7 @@
             if(m) m.classList.add('hidden'); 
         }
 
-        function detectAnomalies() {
+        async function detectAnomalies() {
             const feedContainer = document.getElementById('anomalyFeed');
             if(!feedContainer) return;
             
@@ -2241,29 +2260,41 @@
                 }
             });
 
-            anomalyCounter++;
-            if (anomalyCounter % 3 === 0) { 
-                newAnomalies.push({ 
-                    title: "Network Origin Spike", 
-                    desc: `Unusual API surge detected from IP block 197.210.x.x. Throttling applied.`, 
-                    severity: "CRITICAL", 
-                    color: "#a855f7", 
-                    ip: "197.210.45.12" 
-                }); 
-                crits++; 
+            try {
+                const { data: bannedData, error } = await _supabase.from('banned_ips').select('*').order('created_at', { ascending: false }).limit(10);
+                if (bannedData && !error) {
+                    bannedData.forEach(b => {
+                        newAnomalies.push({ 
+                            title: "Banned IP Detected", 
+                            desc: `IP ${b.ip_address} blocked. Reason: ${b.reason}`, 
+                            severity: "CRITICAL", 
+                            color: "#a855f7", 
+                            ip: b.ip_address, 
+                            timestamp: b.created_at 
+                        });
+                        crits++;
+                    });
+                }
+            } catch (err) {
+                console.error("Failed to fetch banned IPs:", err);
             }
 
-            const cCount = document.getElementById('anomalyCriticalCount');
-            if(cCount) cCount.innerText = parseInt(cCount.innerText || 0) + crits;
-            
-            const hCount = document.getElementById('anomalyHighCount');
-            if(hCount) hCount.innerText = parseInt(hCount.innerText || 0) + highs;
-            
-            const mCount = document.getElementById('anomalyMediumCount');
-            if(mCount) mCount.innerText = parseInt(mCount.innerText || 0) + meds;
-            
-            const lCount = document.getElementById('anomalyLowCount');
-            if(lCount) lCount.innerText = parseInt(lCount.innerText || 0) + lows;
+            document.getElementById('anomalyCriticalCount').innerText = crits;
+            document.getElementById('anomalyHighCount').innerText = highs;
+            document.getElementById('anomalyMediumCount').innerText = meds;
+            document.getElementById('anomalyLowCount').innerText = lows;
+
+            feedContainer.innerHTML = ''; 
+
+            if (newAnomalies.length === 0) {
+                feedContainer.innerHTML = '<div class="p-10 text-center text-slate-500 text-xs">No active anomalies detected across the network.</div>';
+                return;
+            }
+
+            newAnomalies.sort((a, b) => {
+                if(a.severity === 'CRITICAL') return -1;
+                return 1;
+            });
 
             newAnomalies.forEach(ano => {
                 const row = document.createElement('div'); 
@@ -2272,26 +2303,24 @@
                 
                 const actionBtn = ano.userId 
                     ? `<button onclick="investigateAnomaly('${ano.userId}')" class="text-[10px] bg-slate-800 hover:bg-sky-600 text-sky-400 hover:text-white px-3 py-1.5 rounded transition-colors uppercase font-bold tracking-widest border border-slate-700">Investigate</button>` 
-                    : `<button onclick="banIp('${ano.ip}')" class="text-[10px] bg-slate-800 hover:bg-red-600 text-red-400 hover:text-white px-3 py-1.5 rounded transition-colors uppercase font-bold tracking-widest border border-slate-700">Ban IP</button>`;
+                    : `<span class="text-[10px] text-slate-500 uppercase">Enforced</span>`;
                 
-                const d = new Date();
+                const d = ano.timestamp ? new Date(ano.timestamp) : new Date();
                 row.innerHTML = `
-                    <div class="w-2 h-2 rounded-full mt-1.5 animate-pulse shadow-[0_0_8px_${ano.color}]" style="background-color: ${ano.color}"></div>
+                    <div class="w-2 h-2 rounded-full mt-1.5 shadow-[0_0_8px_${ano.color}]" style="background-color: ${ano.color}"></div>
                     <div class="flex-1">
                         <div class="flex justify-between items-start">
                             <div class="text-sm font-bold text-white">${ano.title} <span class="text-[8px] border px-1.5 py-0.5 rounded ml-2" style="color:${ano.color}; border-color:${ano.color}">${ano.severity}</span></div>
-                            <div class="text-[10px] text-slate-500 font-mono">${d.getHours()}:${d.getMinutes()}:${d.getSeconds()}</div>
+                            <div class="text-[10px] text-slate-500 font-mono">${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}</div>
                         </div>
                         <div class="text-xs text-slate-400 mt-1">${ano.desc}</div>
                         <div class="flex gap-2 mt-3">${actionBtn}</div>
                     </div>
                 `;
-                feedContainer.insertBefore(row, feedContainer.firstChild);
+                feedContainer.appendChild(row);
             });
             
-            if (newAnomalies.length > 0) {
-                showToast(`Threat Grid: ${newAnomalies.length} new anomalies detected.`, 'warning');
-            }
+            showToast(`Threat Grid: ${newAnomalies.length} anomalies active.`, 'warning');
         }
 
         function investigateAnomaly(userId) {
