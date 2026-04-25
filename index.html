@@ -338,6 +338,10 @@
             <button onclick="switchTab('broadcast')" id="tab-broadcast" class="sidebar-item flex items-center justify-start gap-3 px-6 py-2.5 text-slate-400 hover:text-slate-200 transition-all text-sm w-full">
                 <i class="fa-solid fa-tower-broadcast w-5 text-center text-pink-500"></i><span class="font-medium">Broadcast Station</span>
             </button>
+
+            <button onclick="switchTab('audit')" id="tab-audit" class="sidebar-item flex items-center justify-start gap-3 px-6 py-2.5 text-slate-400 hover:text-slate-200 transition-all text-sm w-full">
+                <i class="fa-solid fa-shield-halved w-5 text-center text-slate-400"></i><span class="font-medium">Audit Trail</span>
+            </button>
         </div>
 
         <div class="w-full border-t border-slate-800/50 mt-auto">
@@ -477,7 +481,7 @@
                             </tr>
                         </thead>
                         <tbody id="dunningTableBody" class="text-sm text-slate-300 divide-y divide-slate-800/50">
-                            <tr><td colspan="5" class="p-10 text-center text-slate-500">No pending failed payments.</td></tr>
+                            <tr><td colspan="5" class="p-10 text-center text-slate-500">Fetching live dunning data...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -694,6 +698,58 @@
             </div>
         </div>
 
+        <div id="view-audit" class="hidden px-4 md:px-10 pb-10">
+            <div class="glass-panel rounded-2xl overflow-hidden flex flex-col min-h-[600px]">
+                <div class="p-6 border-b border-slate-800 bg-slate-900/50 flex flex-col gap-2 justify-between">
+                    <div>
+                        <h3 class="text-sm font-bold text-white"><i class="fa-solid fa-shield-halved text-slate-400 mr-2"></i> Immutable Audit Trail</h3>
+                        <p class="text-[10px] text-slate-500 uppercase tracking-widest">System-wide action log. Cannot be modified by operators.</p>
+                    </div>
+                    <div class="flex flex-col md:flex-row gap-4 mt-4">
+                        <input type="text" id="auditSearchInput" oninput="filterAuditLogs()" placeholder="Search actor or action..." class="w-full md:w-1/3 bg-[#050914] border border-slate-700 p-2 rounded text-xs text-white placeholder-slate-600 outline-none">
+                        <select id="auditRoleFilter" onchange="filterAuditLogs()" class="w-full md:w-1/4 bg-[#050914] border border-slate-700 p-2 rounded text-xs text-white outline-none">
+                            <option value="All">All Roles</option>
+                            <option value="CEO">CEO</option>
+                            <option value="Admin">Admin</option>
+                            <option value="Growth">Growth</option>
+                            <option value="Infra">Infra</option>
+                            <option value="Investor">Investor</option>
+                        </select>
+                        <select id="auditActionFilter" onchange="filterAuditLogs()" class="w-full md:w-1/4 bg-[#050914] border border-slate-700 p-2 rounded text-xs text-white outline-none">
+                            <option value="All">All Actions</option>
+                            <option value="Credit Override">Credit Override</option>
+                            <option value="Staff Invite">Staff Invite</option>
+                            <option value="Staff Revoke">Staff Revoke</option>
+                            <option value="Plan Change">Plan Change</option>
+                            <option value="Broadcast">Broadcast</option>
+                            <option value="Ticket Resolved">Ticket Resolved</option>
+                        </select>
+                        <button onclick="fetchAuditLogs()" class="w-full md:w-auto bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded text-[10px] font-bold border border-slate-700 uppercase tracking-widest transition-colors">
+                            <i class="fa-solid fa-rotate"></i> Sync
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex-1 overflow-x-auto custom-scrollbar p-0">
+                    <table class="w-full text-left min-w-[900px]">
+                        <thead class="bg-slate-900/80 text-[10px] text-slate-500 uppercase tracking-widest sticky top-0 z-10">
+                            <tr>
+                                <th class="p-4">Timestamp</th>
+                                <th class="p-4">Actor</th>
+                                <th class="p-4">Role</th>
+                                <th class="p-4">Action</th>
+                                <th class="p-4">Target</th>
+                                <th class="p-4">Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auditTableBody" class="text-sm text-slate-300 divide-y divide-slate-800/50">
+                            <tr><td colspan="6" class="p-10 text-center text-slate-500">Fetching audit logs...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <div id="creditOverrideModal" class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/90 px-4 backdrop-blur-sm">
@@ -741,6 +797,17 @@
                 
                 <button onclick="executeCeoGoalOverride()" class="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-3 rounded-lg text-xs mt-4 transition-colors">UPDATE MATRIX</button>
             </div>
+        </div>
+    </div>
+
+    <div id="userTimelineModal" class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/90 px-4 backdrop-blur-sm overflow-y-auto py-10">
+        <div class="max-w-2xl w-full bg-[#0b1120] border border-sky-500/30 rounded-2xl p-6 shadow-2xl relative mt-auto mb-auto">
+            <button onclick="document.getElementById('userTimelineModal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-500 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            <h3 class="text-lg font-bold text-white mb-1">Vault Activity Timeline</h3>
+            <p class="text-[10px] text-slate-400 mb-6 font-mono break-all" id="timelineUserId">User ID</p>
+            
+            <div id="timelineContainer" class="space-y-0 relative pb-4 custom-scrollbar max-h-[60vh] overflow-y-auto pr-2">
+                </div>
         </div>
     </div>
 
@@ -831,10 +898,30 @@
 
         const _supabase = supabase.createClient(ADMIN_CONFIG.SUPABASE_URL, ADMIN_CONFIG.SUPABASE_KEY);
         let loadedUsers = [];
+        let allAuditLogs = [];
         let targetOverrideUserId = null;
         let currentUserRole = 'Admin';
+        let currentUserEmail = '';
         let revenueChartInstance = null;
-        let currentFinancialGoal = 250000000; // Base 250m goal
+        let currentFinancialGoal = 250000000; 
+
+        // =========================================
+        // AUDIT LOG HELPER
+        // =========================================
+        async function logAudit(action, targetType, targetId, detailsObj) {
+            try {
+                await _supabase.from('audit_logs').insert({
+                    actor_email: currentUserEmail || 'unknown',
+                    actor_role: currentUserRole,
+                    action: action,
+                    target_type: targetType,
+                    target_id: targetId,
+                    details: detailsObj
+                });
+            } catch (e) {
+                console.error('Audit Log Failed:', e);
+            }
+        }
 
         // =========================================
         // UI & NAVIGATION CONTROLS
@@ -948,7 +1035,6 @@
         }
         initGlobe();
 
-        // --- SOCKET TELEMETRY ---
         const socket = io('https://pulse.mailvah.com'); 
         const feed = document.getElementById('liveActionFeed');
         
@@ -1030,7 +1116,6 @@
             }
         });
 
-        // Fire Globe Arc specifically on Financial Transactions
         function fireFinancialArc(currency) {
             if(!window.world) return;
             let startHub = mapLabels.find(l => l.city === 'London'); 
@@ -1058,7 +1143,7 @@
         function enforceRBAC(role) {
             currentUserRole = role;
             
-            const allTabs = ['tab-users', 'tab-staff', 'tab-finance', 'tab-config', 'tab-broadcast', 'tab-support', 'tab-security'];
+            const allTabs = ['tab-users', 'tab-staff', 'tab-finance', 'tab-config', 'tab-broadcast', 'tab-support', 'tab-security', 'tab-audit'];
             allTabs.forEach(id => { 
                 const tabEl = document.getElementById(id); 
                 if(tabEl) tabEl.classList.remove('hidden'); 
@@ -1098,6 +1183,8 @@
                 document.getElementById('tab-staff').classList.add('hidden'); 
                 document.getElementById('tab-config').classList.add('hidden'); 
                 document.getElementById('tab-support').classList.add('hidden'); 
+                document.getElementById('auditRoleFilter').classList.add('hidden');
+                document.getElementById('auditRoleFilter').value = 'Growth'; // Force filter locally
             } 
             else if (role === 'Infra') { 
                 document.getElementById('tab-finance').classList.add('hidden'); 
@@ -1105,6 +1192,8 @@
                 document.getElementById('tab-staff').classList.add('hidden'); 
                 document.getElementById('tab-broadcast').classList.add('hidden'); 
                 document.getElementById('nav-group-economy').classList.add('hidden'); 
+                document.getElementById('auditRoleFilter').classList.add('hidden');
+                document.getElementById('auditRoleFilter').value = 'Infra'; // Force filter locally
             } 
             else if (role === 'Investor') { 
                 document.getElementById('tab-security').classList.add('hidden'); 
@@ -1123,7 +1212,7 @@
         // TAB SWITCHING & CHART INITIALIZATION
         // =========================================
         function switchTab(tab) {
-            ['overlord', 'users', 'staff', 'finance', 'config', 'broadcast', 'support', 'security'].forEach(id => { 
+            ['overlord', 'users', 'staff', 'finance', 'config', 'broadcast', 'support', 'security', 'audit'].forEach(id => { 
                 const btn = document.getElementById('tab-' + id); 
                 if(btn) btn.classList.remove('active-tab'); 
                 const view = document.getElementById('view-' + id); 
@@ -1157,7 +1246,8 @@
                 'config': ['SaaS Configuration', 'Deploy dynamic pricing updates and control the platform kill switch.'], 
                 'broadcast': ['Broadcast Station', 'Push instant notification banners to all active operator terminals.'], 
                 'support': ['Integrated Helpdesk', 'Resolve user tickets and manage apology credit injections.'], 
-                'security': ['Threat Grid & Throttling', 'Monitor API abuse and protect Hostwinds server resources.'] 
+                'security': ['Threat Grid & Throttling', 'Monitor API abuse and protect Hostwinds server resources.'],
+                'audit': ['Immutable Audit Trail', 'System-wide action log. Cannot be modified by operators.']
             };
             
             if(titles[tab]) { 
@@ -1288,9 +1378,10 @@
                 resolvedRole = 'CEO';
             }
             
+            currentUserEmail = authData.user.email;
             enforceRBAC(resolvedRole); 
             document.getElementById('adminAuthContainer').classList.add('hidden'); 
-            document.getElementById('staffIdentityDisplay').innerText = `${resolvedRole}: ${authData.user.email}`;
+            document.getElementById('staffIdentityDisplay').innerText = `${resolvedRole}: ${currentUserEmail}`;
             
             switchTab('overlord'); 
             fetchAllData(); 
@@ -1307,6 +1398,7 @@
             fetchRealStaff(); 
             fetchSupportTickets(); 
             fetchFinanceData(); 
+            fetchAuditLogs();
         }
 
         // =========================================
@@ -1337,9 +1429,16 @@
             }
 
             usersArray.forEach(u => {
-                let actionHTML = ''; 
+                let actionHTML = '';
+                let viewTimelineHTML = `<button onclick="openUserTimeline('${u.id}')" title="View Activity Timeline" class="text-[10px] bg-slate-800 hover:bg-emerald-600 text-emerald-400 hover:text-white px-3 py-2 rounded-lg transition-colors border border-slate-700 mr-2"><i class="fa-solid fa-eye"></i></button>`;
+
                 if(currentUserRole !== 'Investor') {
-                    actionHTML = `<button onclick="openRealCreditOverride('${u.id}', '${u.plan_tier}', ${u.integrity_vault || 0}, ${u.discovery_vault || 0})" class="action-btn text-[10px] bg-slate-800 hover:bg-sky-600 text-sky-400 hover:text-white px-3 py-2 rounded-lg transition-colors uppercase font-bold tracking-widest border border-slate-700">Edit</button>`;
+                    actionHTML = `
+                        ${viewTimelineHTML}
+                        <button onclick="openRealCreditOverride('${u.id}', '${u.plan_tier}', ${u.integrity_vault || 0}, ${u.discovery_vault || 0})" class="action-btn text-[10px] bg-slate-800 hover:bg-sky-600 text-sky-400 hover:text-white px-3 py-2 rounded-lg transition-colors uppercase font-bold tracking-widest border border-slate-700">Edit</button>
+                    `;
+                } else {
+                    actionHTML = viewTimelineHTML; // Investors can view timeline
                 }
                 
                 tbody.innerHTML += `
@@ -1348,7 +1447,7 @@
                         <td class="p-4"><span class="text-[10px] bg-slate-800 border border-slate-700 px-2 py-1 rounded text-sky-300 font-bold uppercase tracking-widest">${u.plan_tier || 'Sandbox'}</span></td>
                         <td class="p-4 font-mono text-right text-emerald-400">${(u.integrity_vault || 0).toLocaleString()}</td>
                         <td class="p-4 font-mono text-right text-amber-400">${(u.discovery_vault || 0).toLocaleString()}</td>
-                        <td class="p-4 text-right whitespace-nowrap">${actionHTML}</td>
+                        <td class="p-4 text-right whitespace-nowrap flex justify-end items-center">${actionHTML}</td>
                     </tr>
                 `;
             });
@@ -1363,18 +1462,92 @@
             targetOverrideUserId = userId; 
             document.getElementById('overrideUserId').innerText = userId; 
             document.getElementById('overrideWash').value = wash; 
-            document.getElementById('overrideHunt').value = hunt; 
+            document.getElementById('overrideHunt').value = hunt;
+            document.getElementById('overridePlan').value = plan || 'Sandbox'; 
             document.getElementById('creditOverrideModal').classList.remove('hidden'); 
         }
         
         async function executeRealCreditOverride() { 
-            await _supabase.from('user_credits').update({ 
-                integrity_vault: parseInt(document.getElementById('overrideWash').value), 
-                discovery_vault: parseInt(document.getElementById('overrideHunt').value), 
-                plan_tier: document.getElementById('overridePlan').value 
+            const newWash = parseInt(document.getElementById('overrideWash').value);
+            const newHunt = parseInt(document.getElementById('overrideHunt').value);
+            const newPlan = document.getElementById('overridePlan').value;
+            
+            // Get old values
+            const oldUser = loadedUsers.find(u => u.id === targetOverrideUserId) || {};
+            const oldWash = oldUser.integrity_vault || 0;
+            const oldHunt = oldUser.discovery_vault || 0;
+            const oldPlan = oldUser.plan_tier || 'Sandbox';
+
+            const { error } = await _supabase.from('user_credits').update({ 
+                integrity_vault: newWash, 
+                discovery_vault: newHunt, 
+                plan_tier: newPlan 
             }).eq('id', targetOverrideUserId); 
             
+            if(error) {
+                showToast(error.message, 'error');
+            } else {
+                await logAudit('Credit Override', 'user', targetOverrideUserId, { previous_wash: oldWash, new_wash: newWash, previous_hunt: oldHunt, new_hunt: newHunt, previous_plan: oldPlan, new_plan: newPlan });
+                showToast("Vault Updated", 'success');
+            }
             document.getElementById('creditOverrideModal').classList.add('hidden'); 
+        }
+
+        // =========================================
+        // USER ACTIVITY TIMELINE MODAL
+        // =========================================
+        async function openUserTimeline(userId) {
+            const modal = document.getElementById('userTimelineModal');
+            const container = document.getElementById('timelineContainer');
+            document.getElementById('timelineUserId').innerText = userId;
+            modal.classList.remove('hidden');
+            
+            container.innerHTML = '<div class="flex justify-center py-10"><i class="fa-solid fa-circle-notch fa-spin text-sky-500 text-2xl"></i></div>';
+
+            try {
+                // Fetch Activity
+                const { data: activityData } = await _supabase.from('user_activity').select('*').eq('user_id', userId).order('created_at', { ascending: false });
+                // Fetch Support Tickets
+                const { data: ticketData } = await _supabase.from('support_tickets').select('*').eq('user_id', userId);
+                
+                let timeline = [];
+                if (activityData) timeline.push(...activityData.map(a => ({ type: 'activity', date: new Date(a.created_at), title: a.activity_type, desc: a.description })));
+                if (ticketData) timeline.push(...ticketData.map(t => ({ type: 'ticket', date: new Date(t.created_at), title: `Ticket: ${t.issue}`, desc: `Status: ${t.status}` })));
+
+                timeline.sort((a, b) => b.date - a.date);
+
+                if (timeline.length === 0) {
+                    container.innerHTML = '<div class="text-center text-slate-500 py-10">No activity recorded for this vault.</div>';
+                    return;
+                }
+
+                let html = '';
+                timeline.forEach(item => {
+                    let icon = 'fa-bolt text-sky-400';
+                    if (item.type === 'ticket') icon = 'fa-ticket text-amber-400';
+                    if (item.title.toLowerCase().includes('plan')) icon = 'fa-arrow-up text-purple-400';
+                    if (item.title.toLowerCase().includes('compensate') || item.title.toLowerCase().includes('credit')) icon = 'fa-coins text-emerald-400';
+
+                    html += `
+                        <div class="flex gap-4 mb-4 relative">
+                            <div class="absolute left-4 top-8 bottom-[-16px] w-px bg-slate-800"></div>
+                            <div class="relative z-10 w-8 h-8 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center shrink-0">
+                                <i class="fa-solid ${icon} text-[10px]"></i>
+                            </div>
+                            <div class="glass-panel p-3 rounded-lg flex-1">
+                                <div class="flex justify-between items-start mb-1">
+                                    <h4 class="text-xs font-bold text-white">${item.title}</h4>
+                                    <span class="text-[9px] text-slate-500 font-mono">${item.date.toLocaleString()}</span>
+                                </div>
+                                <p class="text-[10px] text-slate-400">${item.desc}</p>
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            } catch (err) {
+                container.innerHTML = `<div class="text-center text-red-500 py-10">Failed to load timeline: ${err.message}</div>`;
+            }
         }
 
         // =========================================
@@ -1435,7 +1608,6 @@
             }
         }
 
-        // Live Edge Function Fetch
         async function syncFinancials() {
             const btn = document.getElementById('fetchLedgerBtn');
             const originalText = btn.innerHTML;
@@ -1525,7 +1697,6 @@
                     revenueChartInstance.update();
                 }
 
-                // Update 250M Goal Logic
                 updateGoalRing(totalNGN, totalUSD);
                 showToast("API connection secured. Data synced.", "info");
                 
@@ -1538,16 +1709,11 @@
 
         // --- CEO GOAL OVERRIDE CONTROLS ---
         function updateGoalRing(ngnRevenue, usdRevenue) {
-            // Rough conversion logic for visual display
             const combinedRevenue = ngnRevenue + (usdRevenue * 1500); 
-            
             let pct = (combinedRevenue / currentFinancialGoal) * 100;
             if(pct > 100) pct = 100;
-            
             document.getElementById('goalPercentage').innerText = pct.toFixed(1) + '%';
             document.getElementById('goalCircle').style.strokeDasharray = `${pct}, 100`;
-            
-            // Format the text label nicely
             let formattedGoal = (currentFinancialGoal / 1000000).toFixed(0) + 'M';
             document.getElementById('currentGoalText').innerText = formattedGoal;
         }
@@ -1561,7 +1727,6 @@
             const newGoal = parseInt(document.getElementById('ceoNewGoalInput').value);
             if(newGoal > 0) {
                 currentFinancialGoal = newGoal;
-                // Re-sync to update the ring mathematically
                 syncFinancials(); 
             }
             document.getElementById('ceoGoalModal').classList.add('hidden');
@@ -1633,6 +1798,7 @@
             if (dbError) {
                 showToast(dbError.message, 'error'); 
             } else { 
+                await logAudit('Staff Invite', 'staff', email, { role: role });
                 showToast(`Operative Added! Email: ${email} Temp Pass: ${tempPassword}`, 'success'); 
                 document.getElementById('inviteStaffEmail').value = ''; 
                 fetchRealStaff(); 
@@ -1642,12 +1808,18 @@
         async function revokeRealStaff(id) { 
             if(currentUserRole === 'Investor') return; 
             if(confirm("Permanently revoke access for this operative?")) {
-                await _supabase.from('staff_users').delete().eq('id', id); 
+                const { error } = await _supabase.from('staff_users').delete().eq('id', id); 
+                if(!error) {
+                    await logAudit('Staff Revoke', 'staff', id, { revoked_by: currentUserRole });
+                    showToast('Staff revoked successfully.', 'success');
+                } else {
+                    showToast(error.message, 'error');
+                }
             }
         }
 
         // =========================================
-        // SUPPORT TICKETS & BROADCASTS
+        // SUPPORT TICKETS & SMART CREDIT SUGGESTIONS
         // =========================================
         async function fetchSupportTickets() {
             document.getElementById('supportTableBody').innerHTML = getTableSkeleton(4);
@@ -1664,11 +1836,27 @@
             data.forEach(t => {
                 let actionHTML = ''; 
                 if(currentUserRole !== 'Investor') {
+                    // Include Mark Resolved
                     actionHTML = `<button onclick="closeRealTicket('${t.id}')" class="action-btn bg-slate-800 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-slate-700 transition-colors">Mark Resolved</button>`;
+                    
+                    // Smart Credit Suggestions Form
+                    actionHTML += `
+                        <div class="mt-2 flex gap-2 items-center justify-end">
+                            <select id="comp-${t.id}" class="text-[10px] bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white outline-none" onchange="handleCompensateChange('${t.id}')">
+                                <option value="">Compensate...</option>
+                                <option value="500">Apology 500</option>
+                                <option value="2000">Apology 2000</option>
+                                <option value="5000">Apology 5000</option>
+                                <option value="custom">Custom</option>
+                            </select>
+                            <input type="number" id="comp-custom-${t.id}" class="hidden w-16 text-[10px] bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white outline-none" placeholder="Amt">
+                            <button id="comp-btn-${t.id}" onclick="executeCompensate('${t.user_id || t.user_email}', '${t.id}')" class="text-[10px] bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 rounded px-2 py-1 hover:bg-emerald-600 hover:text-white transition-colors">Send</button>
+                        </div>
+                    `;
                 }
                 
                 tbody.innerHTML += `
-                    <tr class="hover:bg-slate-800/30 border-b border-slate-800/50">
+                    <tr id="ticket-row-${t.id}" class="hover:bg-slate-800/30 border-b border-slate-800/50 transition-colors duration-300">
                         <td class="p-4"><div class="font-bold text-white">${t.user_email}</div></td>
                         <td class="p-4"><div class="font-medium text-amber-400">${t.issue}</div></td>
                         <td class="p-4 text-center"><span class="bg-red-500/10 text-red-400 border border-red-500/20 text-[9px] px-2 py-1 rounded uppercase tracking-widest font-bold">${t.status}</span></td>
@@ -1679,18 +1867,188 @@
         }
         
         async function closeRealTicket(id) { 
-            await _supabase.from('support_tickets').update({ status: 'Resolved' }).eq('id', id); 
+            const { error } = await _supabase.from('support_tickets').update({ status: 'Resolved' }).eq('id', id); 
+            if(!error) {
+                await logAudit('Ticket Resolved', 'ticket', id, { resolved_by: currentUserRole });
+                showToast('Ticket marked resolved.', 'success');
+            } else {
+                showToast(error.message, 'error');
+            }
+        }
+
+        function handleCompensateChange(ticketId) {
+            const selectEl = document.getElementById(`comp-${ticketId}`);
+            const customInput = document.getElementById(`comp-custom-${ticketId}`);
+            if (selectEl.value === 'custom') {
+                customInput.classList.remove('hidden');
+            } else {
+                customInput.classList.add('hidden');
+            }
+        }
+
+        async function executeCompensate(userIdentifier, ticketId) {
+            const selectEl = document.getElementById(`comp-${ticketId}`);
+            let amount = selectEl.value;
+            if (amount === 'custom') {
+                amount = document.getElementById(`comp-custom-${ticketId}`).value;
+            }
+            amount = parseInt(amount);
+            if (!amount || isNaN(amount) || amount <= 0) return showToast('Please enter a valid amount', 'warning');
+
+            const btn = document.getElementById(`comp-btn-${ticketId}`);
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+            try {
+                // Find user in loadedUsers (fallback search by email if identifier is email)
+                let targetUser = loadedUsers.find(u => u.id === userIdentifier || u.email === userIdentifier);
+                if (!targetUser) {
+                    // Try fetch from db if not in current loadedUsers
+                    const { data: uData } = await _supabase.from('user_credits').select('*').eq('id', userIdentifier).single();
+                    if(uData) targetUser = uData;
+                    else throw new Error('User vault not found');
+                }
+
+                const newWash = (targetUser.integrity_vault || 0) + amount;
+
+                // Update vault
+                const { error: updateErr } = await _supabase.from('user_credits').update({ integrity_vault: newWash }).eq('id', targetUser.id);
+                if (updateErr) throw updateErr;
+
+                // Insert activity
+                await _supabase.from('user_activity').insert({
+                    user_id: targetUser.id,
+                    activity_type: 'compensation',
+                    description: `Compensated ${amount} credits via support desk`,
+                    metadata: { ticket_id: ticketId, amount: amount }
+                });
+
+                // Log audit
+                await logAudit('Credit Override', 'user', targetUser.id, { reason: "Support Compensation", ticket_id: ticketId, amount_added: amount });
+
+                // UI Polish
+                const row = document.getElementById(`ticket-row-${ticketId}`);
+                if (row) {
+                    row.classList.add('bg-emerald-500/10');
+                    setTimeout(() => row.classList.remove('bg-emerald-500/10'), 1000);
+                }
+
+                showToast(`Compensated ${amount} credits to ${targetUser.id}`, 'success');
+                
+                selectEl.value = '';
+                const customInput = document.getElementById(`comp-custom-${ticketId}`);
+                if (customInput) {
+                    customInput.value = '';
+                    customInput.classList.add('hidden');
+                }
+                btn.innerHTML = 'Send';
+                btn.disabled = false;
+
+                fetchRealUsers(); // Refresh background data
+            } catch (err) {
+                btn.innerHTML = 'Send';
+                btn.disabled = false;
+                showToast(err.message, 'error');
+            }
         }
         
         async function pushRealBroadcast() { 
-            await _supabase.from('system_broadcasts').insert([{ 
-                message: document.getElementById('broadcastMessage').value, 
-                type: document.getElementById('broadcastType').value, 
+            const msgText = document.getElementById('broadcastMessage').value;
+            const bType = document.getElementById('broadcastType').value;
+            const { error } = await _supabase.from('system_broadcasts').insert([{ 
+                message: msgText, 
+                type: bType, 
                 created_at: new Date() 
             }]); 
             
-            document.getElementById('broadcastMessage').value = ''; 
-            showToast('Broadcast Sent!', 'success'); 
+            if(!error) {
+                await logAudit('Broadcast', 'system', 'global', { message: msgText, type: bType });
+                document.getElementById('broadcastMessage').value = ''; 
+                showToast('Broadcast Sent!', 'success'); 
+            } else {
+                showToast(error.message, 'error');
+            }
+        }
+
+        // =========================================
+        // AUDIT LOG SYSTEM
+        // =========================================
+        async function fetchAuditLogs() {
+            document.getElementById('auditTableBody').innerHTML = getTableSkeleton(6);
+            const { data, error } = await _supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(100);
+            if (error) return showToast(error.message, 'error');
+            allAuditLogs = data || [];
+            renderAuditLogs();
+        }
+
+        function renderAuditLogs() {
+            const tbody = document.getElementById('auditTableBody');
+            tbody.innerHTML = '';
+            
+            // Client side filters
+            const searchQ = document.getElementById('auditSearchInput').value.toLowerCase();
+            let roleFilter = document.getElementById('auditRoleFilter').value;
+            const actionFilter = document.getElementById('auditActionFilter').value;
+
+            // Force filter for Growth/Infra
+            if (currentUserRole === 'Growth' || currentUserRole === 'Infra') {
+                roleFilter = currentUserRole;
+            }
+
+            const filteredLogs = allAuditLogs.filter(log => {
+                if(searchQ && !log.actor_email.toLowerCase().includes(searchQ) && !log.action.toLowerCase().includes(searchQ)) return false;
+                if(roleFilter !== 'All' && log.actor_role !== roleFilter) return false;
+                if(actionFilter !== 'All' && log.action !== actionFilter) return false;
+                
+                // Extra security: Growth/Infra only see their own logs
+                if ((currentUserRole === 'Growth' || currentUserRole === 'Infra') && log.actor_email !== currentUserEmail) return false;
+                
+                return true;
+            });
+
+            if(filteredLogs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="p-10 text-center text-slate-500">No audit logs match your filters.</td></tr>';
+                return;
+            }
+
+            filteredLogs.forEach(log => {
+                const d = new Date(log.created_at);
+                const timeStr = `${d.toLocaleDateString()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+                
+                let badgeColor = 'text-slate-400 bg-slate-800 border-slate-700'; 
+                if(log.actor_role === 'CEO') badgeColor = 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20'; 
+                if(log.actor_role === 'Admin') badgeColor = 'text-blue-400 bg-blue-500/10 border-blue-500/20'; 
+                if(log.actor_role === 'Growth') badgeColor = 'text-purple-400 bg-purple-500/10 border-purple-500/20'; 
+                if(log.actor_role === 'Infra') badgeColor = 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
+
+                let actionBorder = 'border-l-slate-500';
+                if(log.action === 'Credit Override') actionBorder = 'border-l-sky-500';
+                if(log.action === 'Staff Invite') actionBorder = 'border-l-purple-500';
+                if(log.action === 'Staff Revoke') actionBorder = 'border-l-red-500';
+                if(log.action === 'Plan Change') actionBorder = 'border-l-amber-500';
+                if(log.action === 'Broadcast') actionBorder = 'border-l-pink-500';
+                if(log.action === 'Ticket Resolved') actionBorder = 'border-l-emerald-500';
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-800/30 border-b border-slate-800/50">
+                        <td class="p-4 font-mono text-[10px] text-slate-400">${timeStr}</td>
+                        <td class="p-4 font-medium text-white">${log.actor_email}</td>
+                        <td class="p-4"><span class="${badgeColor} border text-[9px] px-2 py-1 rounded tracking-widest uppercase font-bold">${log.actor_role}</span></td>
+                        <td class="p-4"><span class="border-l-2 pl-2 ${actionBorder} text-slate-300 text-xs">${log.action}</span></td>
+                        <td class="p-4 font-mono text-[10px] text-slate-500 break-all">${log.target_id || '-'}</td>
+                        <td class="p-4">
+                            <details class="text-[10px] group cursor-pointer outline-none">
+                                <summary class="text-sky-400 hover:text-sky-300 outline-none">View Details</summary>
+                                <pre class="mt-2 bg-slate-950 p-2 rounded text-slate-400 overflow-x-auto whitespace-pre-wrap">${JSON.stringify(log.details, null, 2)}</pre>
+                            </details>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function filterAuditLogs() {
+            renderAuditLogs();
         }
 
         // =========================================
@@ -1701,6 +2059,16 @@
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'user_credits' }, () => { fetchRealUsers(); })
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'staff_users' }, () => { fetchRealStaff(); })
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'support_tickets' }, () => { fetchSupportTickets(); })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'audit_logs' }, () => { 
+                    const auditTab = document.getElementById('view-audit');
+                    if(auditTab && !auditTab.classList.contains('hidden')) fetchAuditLogs(); 
+                })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'user_activity' }, () => { 
+                    const timelineModal = document.getElementById('userTimelineModal');
+                    if(timelineModal && !timelineModal.classList.contains('hidden')) {
+                        openUserTimeline(document.getElementById('timelineUserId').innerText);
+                    }
+                })
                 .subscribe((status) => { 
                     if(status === 'SUBSCRIBED') { 
                         document.getElementById('realtimeStatus').innerText = 'Supabase Sync: ACTIVE'; 
@@ -1723,6 +2091,7 @@
                     resolvedRole = 'CEO';
                 }
                 
+                currentUserEmail = session.user.email;
                 enforceRBAC(resolvedRole); 
                 document.getElementById('adminAuthContainer').classList.add('hidden'); 
                 document.getElementById('staffIdentityDisplay').innerText = `${resolvedRole}: ${session.user.email}`; 
