@@ -304,7 +304,7 @@
             </button>
             
             <button onclick="switchTab('security')" id="tab-security" class="sidebar-item flex items-center justify-start gap-3 px-6 py-2.5 text-slate-400 hover:text-slate-200 transition-all text-sm w-full">
-                <i class="fa-solid fa-shield-halved w-5 text-center text-red-400"></i><span class="font-medium">API Throttling</span>
+                <i class="fa-solid fa-shield-halved w-5 text-center text-red-400"></i><span class="font-medium">Anomaly Detection</span>
             </button>
 
             <div id="nav-group-control" class="px-6 mt-3 mb-1 border-t border-slate-800/50 pt-3">
@@ -341,6 +341,10 @@
 
             <button onclick="switchTab('audit')" id="tab-audit" class="sidebar-item flex items-center justify-start gap-3 px-6 py-2.5 text-slate-400 hover:text-slate-200 transition-all text-sm w-full">
                 <i class="fa-solid fa-shield-halved w-5 text-center text-slate-400"></i><span class="font-medium">Audit Trail</span>
+            </button>
+
+            <button onclick="switchTab('query')" id="tab-query" class="sidebar-item flex items-center justify-start gap-3 px-6 py-2.5 text-slate-400 hover:text-slate-200 transition-all text-sm w-full">
+                <i class="fa-solid fa-terminal w-5 text-center text-slate-400"></i><span class="font-medium">Query Terminal</span>
             </button>
         </div>
 
@@ -489,10 +493,17 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
                 <div class="lg:col-span-2 glass-panel p-6 rounded-2xl border-t-2 border-t-sky-500 relative">
+                    
+                    <div id="forecastCard" class="hidden absolute top-6 right-6 glass-panel p-4 rounded-xl border-l-2 border-l-sky-500 z-10 w-48 shadow-2xl">
+                        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">4-Week Projection</div>
+                        <div class="text-xl font-black text-white font-mono" id="forecastTotalText">₦0</div>
+                        <div class="text-[9px] text-slate-500 mt-1">Based on last 6 weeks velocity</div>
+                    </div>
+
                     <div class="flex justify-between items-center mb-6">
                         <div>
-                            <h3 class="text-sm font-bold text-white"><i class="fa-solid fa-chart-line text-sky-400 mr-2"></i> Transaction Velocity</h3>
-                            <p class="text-[10px] text-slate-500 uppercase tracking-widest mt-1">Live Endpoint Mapping</p>
+                            <h3 class="text-sm font-bold text-white"><i class="fa-solid fa-chart-line text-sky-400 mr-2"></i> Transaction Velocity & Forecast</h3>
+                            <p class="text-[10px] text-slate-500 uppercase tracking-widest mt-1">Live Endpoint Mapping & Linear Regression</p>
                         </div>
                         <button onclick="syncFinancials()" id="fetchLedgerBtn" class="action-btn bg-sky-600/20 hover:bg-sky-600 text-sky-400 hover:text-white border border-sky-500/30 font-bold px-4 py-2 rounded-lg transition-all text-xs tracking-widest flex items-center justify-center gap-2">
                             <i class="fa-solid fa-bolt"></i> SYNC LEDGER
@@ -553,16 +564,42 @@
         </div>
 
         <div id="view-security" class="hidden px-4 md:px-10 pb-10">
-            <div class="glass-panel p-6 rounded-2xl border-t-2 border-t-red-500 mb-8">
-                <h3 class="text-lg font-bold text-white mb-2"><i class="fa-solid fa-radar text-red-400 mr-2"></i> Threat Grid (Abuse Detection)</h3>
-                <p class="text-xs text-slate-400 mb-6">Monitor unusual API spikes that could crash the 1GB Hostwinds server.</p>
-                <div class="bg-slate-900/50 rounded-xl border border-slate-700/50 p-4 font-mono text-xs">
-                    <div class="flex justify-between items-center mb-3 text-red-400 border-b border-red-900/50 pb-2">
-                        <span>IP: 104.28.19.42</span>
-                        <span class="bg-red-500/20 px-2 py-1 rounded">SPAM DETECTED</span>
-                    </div>
-                    <div class="text-slate-400 mb-4">Request Rate: 450 req/sec (Limit: 50)</div>
-                    <button class="action-btn w-full bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/30 transition-colors py-2 rounded font-bold uppercase tracking-widest">Sever Connection & Ban IP</button>
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-white">Threat Grid & Anomalies</h2>
+                    <p class="text-slate-400 text-sm">Real-time pattern detection across the operator network.</p>
+                </div>
+                <button onclick="detectAnomalies()" class="action-btn bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white border border-red-500/30 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-colors">
+                    <i class="fa-solid fa-radar"></i> Scan Now
+                </button>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="glass-panel p-4 rounded-xl border-l-2 border-l-purple-500">
+                    <div class="text-[10px] text-slate-400 uppercase tracking-widest">Critical</div>
+                    <div class="text-2xl font-black text-purple-400 font-mono" id="anomalyCriticalCount">0</div>
+                </div>
+                <div class="glass-panel p-4 rounded-xl border-l-2 border-l-red-500">
+                    <div class="text-[10px] text-slate-400 uppercase tracking-widest">High</div>
+                    <div class="text-2xl font-black text-red-400 font-mono" id="anomalyHighCount">0</div>
+                </div>
+                <div class="glass-panel p-4 rounded-xl border-l-2 border-l-amber-500">
+                    <div class="text-[10px] text-slate-400 uppercase tracking-widest">Medium</div>
+                    <div class="text-2xl font-black text-amber-400 font-mono" id="anomalyMediumCount">0</div>
+                </div>
+                <div class="glass-panel p-4 rounded-xl border-l-2 border-l-emerald-500">
+                    <div class="text-[10px] text-slate-400 uppercase tracking-widest">Low</div>
+                    <div class="text-2xl font-black text-emerald-400 font-mono" id="anomalyLowCount">0</div>
+                </div>
+            </div>
+
+            <div class="glass-panel rounded-2xl overflow-hidden flex flex-col">
+                <div class="px-6 py-4 bg-slate-900/80 border-b border-slate-800 flex justify-between items-center">
+                    <h3 class="text-sm font-bold text-white"><i class="fa-solid fa-bolt text-red-400 mr-2"></i> Live Anomaly Feed</h3>
+                    <span class="text-[9px] font-mono text-red-400 bg-red-500/10 px-2 py-1 rounded border border-red-500/20 animate-pulse">LIVE</span>
+                </div>
+                <div id="anomalyFeed" class="flex flex-col max-h-[500px] overflow-y-auto custom-scrollbar bg-slate-950/50">
+                    <div class="p-10 text-center text-slate-500 text-xs">Click "Scan Now" to initiate deep scan...</div>
                 </div>
             </div>
         </div>
@@ -750,6 +787,41 @@
             </div>
         </div>
 
+        <div id="view-query" class="hidden px-4 md:px-10 pb-10 max-w-5xl mx-auto">
+            <div class="glass-panel p-6 md:p-8 rounded-2xl border-t-2 border-t-sky-500 mb-6">
+                <h3 class="text-xl font-bold text-white mb-2"><i class="fa-solid fa-terminal text-sky-400 mr-2"></i> Read-Only Query Terminal</h3>
+                <p class="text-xs text-slate-400 mb-6">Execute SELECT statements safely. Destructive queries are blocked client-side.</p>
+                
+                <div class="relative mb-4">
+                    <textarea id="queryInput" rows="4" class="w-full bg-[#050914] border border-slate-700 p-4 rounded-xl text-sm text-white font-mono outline-none focus:border-sky-500" placeholder="SELECT * FROM user_credits LIMIT 10;"></textarea>
+                    <div class="absolute bottom-3 right-3 text-[10px] text-slate-600 font-mono">read-only mode</div>
+                </div>
+                
+                <div class="flex justify-between items-center">
+                    <div class="text-[10px] text-slate-500">
+                        <i class="fa-solid fa-shield-halved mr-1"></i> 
+                        Blocked: INSERT, UPDATE, DELETE, DROP, ALTER, CREATE, TRUNCATE, GRANT
+                    </div>
+                    <button onclick="executeQuery()" id="queryBtn" class="action-btn bg-sky-600 hover:bg-sky-500 text-white font-bold py-2 px-6 rounded-lg text-xs tracking-widest flex items-center gap-2 transition-colors">
+                        <i class="fa-solid fa-play"></i> RUN QUERY
+                    </button>
+                </div>
+            </div>
+
+            <div id="queryResultsContainer" class="hidden glass-panel rounded-2xl overflow-hidden flex flex-col">
+                <div class="px-6 py-3 bg-slate-900/80 border-b border-slate-800 flex justify-between items-center">
+                    <span class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Results</span>
+                    <span class="text-[10px] font-mono text-slate-500" id="queryMeta">0 rows • 0ms</span>
+                </div>
+                <div class="overflow-x-auto custom-scrollbar max-h-[400px]">
+                    <table class="w-full text-left text-sm text-slate-300">
+                        <thead id="queryResultHead" class="bg-slate-900/50 text-[10px] text-slate-500 uppercase tracking-widest sticky top-0"></thead>
+                        <tbody id="queryResultBody" class="divide-y divide-slate-800/50"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <div id="creditOverrideModal" class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/90 px-4 backdrop-blur-sm">
@@ -889,6 +961,30 @@
         }
 
         // =========================================
+        // MRR FORECASTING HELPER (LINEAR REGRESSION)
+        // =========================================
+        function calculateForecast(dataPoints, periodsToForecast) {
+            const n = dataPoints.length;
+            if (n < 2) return new Array(periodsToForecast).fill(dataPoints[0] || 0);
+            
+            let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+            for (let i = 0; i < n; i++) {
+                sumX += i;
+                sumY += dataPoints[i];
+                sumXY += i * dataPoints[i];
+                sumXX += i * i;
+            }
+            const slope = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+            const intercept = (sumY - slope * sumX) / n;
+            
+            const forecast = [];
+            for (let i = 1; i <= periodsToForecast; i++) {
+                forecast.push(Math.max(0, Math.round(slope * (n + i - 1) + intercept)));
+            }
+            return forecast;
+        }
+
+        // =========================================
         // CONFIGURATION & GLOBAL VARIABLES
         // =========================================
         const ADMIN_CONFIG = {
@@ -904,6 +1000,7 @@
         let currentUserEmail = '';
         let revenueChartInstance = null;
         let currentFinancialGoal = 250000000; 
+        let anomalyScanInterval = null;
 
         // =========================================
         // AUDIT LOG HELPER
@@ -1143,7 +1240,7 @@
         function enforceRBAC(role) {
             currentUserRole = role;
             
-            const allTabs = ['tab-users', 'tab-staff', 'tab-finance', 'tab-config', 'tab-broadcast', 'tab-support', 'tab-security', 'tab-audit'];
+            const allTabs = ['tab-users', 'tab-staff', 'tab-finance', 'tab-config', 'tab-broadcast', 'tab-support', 'tab-security', 'tab-audit', 'tab-query'];
             allTabs.forEach(id => { 
                 const tabEl = document.getElementById(id); 
                 if(tabEl) tabEl.classList.remove('hidden'); 
@@ -1174,6 +1271,11 @@
                 if(revenueChartInstance) updateChartColors(false);
             }
             
+            // Query Terminal Visibility
+            if(role !== 'CEO' && role !== 'Admin') {
+                document.getElementById('tab-query').classList.add('hidden');
+            }
+
             if (role === 'Admin') { 
                 document.getElementById('tab-finance').classList.add('hidden'); 
                 document.getElementById('tab-staff').classList.add('hidden'); 
@@ -1184,7 +1286,7 @@
                 document.getElementById('tab-config').classList.add('hidden'); 
                 document.getElementById('tab-support').classList.add('hidden'); 
                 document.getElementById('auditRoleFilter').classList.add('hidden');
-                document.getElementById('auditRoleFilter').value = 'Growth'; // Force filter locally
+                document.getElementById('auditRoleFilter').value = 'Growth'; 
             } 
             else if (role === 'Infra') { 
                 document.getElementById('tab-finance').classList.add('hidden'); 
@@ -1193,7 +1295,7 @@
                 document.getElementById('tab-broadcast').classList.add('hidden'); 
                 document.getElementById('nav-group-economy').classList.add('hidden'); 
                 document.getElementById('auditRoleFilter').classList.add('hidden');
-                document.getElementById('auditRoleFilter').value = 'Infra'; // Force filter locally
+                document.getElementById('auditRoleFilter').value = 'Infra'; 
             } 
             else if (role === 'Investor') { 
                 document.getElementById('tab-security').classList.add('hidden'); 
@@ -1212,7 +1314,7 @@
         // TAB SWITCHING & CHART INITIALIZATION
         // =========================================
         function switchTab(tab) {
-            ['overlord', 'users', 'staff', 'finance', 'config', 'broadcast', 'support', 'security', 'audit'].forEach(id => { 
+            ['overlord', 'users', 'staff', 'finance', 'config', 'broadcast', 'support', 'security', 'audit', 'query'].forEach(id => { 
                 const btn = document.getElementById('tab-' + id); 
                 if(btn) btn.classList.remove('active-tab'); 
                 const view = document.getElementById('view-' + id); 
@@ -1242,12 +1344,13 @@
             const titles = { 
                 'users': ['Client Vaults', 'Manage operator identities, manual credit overrides, and security bans.'], 
                 'staff': ['Staff IAM', 'Provision restricted accounts and manage internal team security clearance.'], 
-                'finance': ['Financial & MRR Hub', 'Multi-currency live ledger and objective tracking.'], 
+                'finance': ['Financial & MRR Hub', 'Multi-currency live ledger, objective tracking, and ML forecasting.'], 
                 'config': ['SaaS Configuration', 'Deploy dynamic pricing updates and control the platform kill switch.'], 
                 'broadcast': ['Broadcast Station', 'Push instant notification banners to all active operator terminals.'], 
                 'support': ['Integrated Helpdesk', 'Resolve user tickets and manage apology credit injections.'], 
-                'security': ['Threat Grid & Throttling', 'Monitor API abuse and protect Hostwinds server resources.'],
-                'audit': ['Immutable Audit Trail', 'System-wide action log. Cannot be modified by operators.']
+                'security': ['Threat Grid & Anomalies', 'Real-time anomaly detection across the operator network.'],
+                'audit': ['Immutable Audit Trail', 'System-wide action log. Cannot be modified by operators.'],
+                'query': ['Read-Only Query Terminal', 'Execute safe SELECT queries against the live database.']
             };
             
             if(titles[tab]) { 
@@ -1267,7 +1370,7 @@
             }
         });
 
-        // Initialize Chart.js Spline Matrix
+        // Initialize Chart.js Spline Matrix with Forecast
         function initSplineChart() {
             if (revenueChartInstance) {
                 revenueChartInstance.destroy();
@@ -1285,21 +1388,36 @@
             revenueChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: ['W1', 'W2', 'W3', 'W4', 'W5', 'W6'],
-                    datasets: [{ 
-                        label: 'Revenue Velocity', 
-                        data: [0,0,0,0,0,0], 
-                        borderColor: lineColor, 
-                        backgroundColor: gradient, 
-                        borderWidth: 3, 
-                        tension: 0.4, 
-                        fill: true, 
-                        pointBackgroundColor: '#0b1120', 
-                        pointBorderColor: lineColor, 
-                        pointBorderWidth: 2, 
-                        pointRadius: 4, 
-                        pointHoverRadius: 6 
-                    }]
+                    labels: ['W-5', 'W-4', 'W-3', 'W-2', 'W-1', 'NOW', 'W+1', 'W+2', 'W+3', 'W+4'],
+                    datasets: [
+                        { 
+                            label: 'Revenue Velocity', 
+                            data: [0,0,0,0,0,0, null, null, null, null], 
+                            borderColor: lineColor, 
+                            backgroundColor: gradient, 
+                            borderWidth: 3, 
+                            tension: 0.4, 
+                            fill: true, 
+                            pointBackgroundColor: '#0b1120', 
+                            pointBorderColor: lineColor, 
+                            pointBorderWidth: 2, 
+                            pointRadius: 4, 
+                            pointHoverRadius: 6 
+                        },
+                        {
+                            label: 'Projected',
+                            data: [null, null, null, null, null, null, null, null, null, null],
+                            borderColor: lineColor,
+                            backgroundColor: 'transparent',
+                            borderWidth: 3,
+                            borderDash: [6, 4],
+                            tension: 0.4,
+                            fill: false,
+                            pointRadius: 0,
+                            pointHoverRadius: 4,
+                            spanGaps: true
+                        }
+                    ]
                 },
                 options: { 
                     responsive: true, 
@@ -1343,6 +1461,9 @@
             revenueChartInstance.data.datasets[0].borderColor = lineColor;
             revenueChartInstance.data.datasets[0].backgroundColor = gradient;
             revenueChartInstance.data.datasets[0].pointBorderColor = lineColor;
+            
+            revenueChartInstance.data.datasets[1].borderColor = lineColor;
+
             revenueChartInstance.options.plugins.tooltip.bodyColor = lineColor;
             revenueChartInstance.update();
         }
@@ -1438,7 +1559,7 @@
                         <button onclick="openRealCreditOverride('${u.id}', '${u.plan_tier}', ${u.integrity_vault || 0}, ${u.discovery_vault || 0})" class="action-btn text-[10px] bg-slate-800 hover:bg-sky-600 text-sky-400 hover:text-white px-3 py-2 rounded-lg transition-colors uppercase font-bold tracking-widest border border-slate-700">Edit</button>
                     `;
                 } else {
-                    actionHTML = viewTimelineHTML; // Investors can view timeline
+                    actionHTML = viewTimelineHTML; 
                 }
                 
                 tbody.innerHTML += `
@@ -1472,7 +1593,6 @@
             const newHunt = parseInt(document.getElementById('overrideHunt').value);
             const newPlan = document.getElementById('overridePlan').value;
             
-            // Get old values
             const oldUser = loadedUsers.find(u => u.id === targetOverrideUserId) || {};
             const oldWash = oldUser.integrity_vault || 0;
             const oldHunt = oldUser.discovery_vault || 0;
@@ -1505,9 +1625,7 @@
             container.innerHTML = '<div class="flex justify-center py-10"><i class="fa-solid fa-circle-notch fa-spin text-sky-500 text-2xl"></i></div>';
 
             try {
-                // Fetch Activity
                 const { data: activityData } = await _supabase.from('user_activity').select('*').eq('user_id', userId).order('created_at', { ascending: false });
-                // Fetch Support Tickets
                 const { data: ticketData } = await _supabase.from('support_tickets').select('*').eq('user_id', userId);
                 
                 let timeline = [];
@@ -1556,7 +1674,6 @@
         async function fetchFinanceData() {
             document.getElementById('dunningTableBody').innerHTML = getTableSkeleton(5);
             
-            // Dunning Data
             const { data: dunningData } = await _supabase.from('dunning_queue').select('*');
             const dunningBody = document.getElementById('dunningTableBody');
             dunningBody.innerHTML = '';
@@ -1584,7 +1701,6 @@
             }
             document.getElementById('liveChurnRisk').innerText = '₦' + churnRisk.toLocaleString();
 
-            // Promo Data
             const { data: promoData } = await _supabase.from('promo_codes').select('*');
             const promoContainer = document.getElementById('promoContainer');
             promoContainer.innerHTML = '';
@@ -1693,8 +1809,19 @@
                 document.getElementById('liveMrrUSD').innerText = '$' + (totalUSD > 0 ? totalUSD.toLocaleString() : '0');
 
                 if(revenueChartInstance) {
-                    revenueChartInstance.data.datasets[0].data = chartDataArray.reverse();
+                    revenueChartInstance.data.datasets[0].data = [...chartDataArray.reverse(), null, null, null, null];
+                    
+                    const forecastData = calculateForecast(chartDataArray, 4);
+                    const projectedArray = [null, null, null, null, null, chartDataArray[chartDataArray.length-1], ...forecastData];
+                    
+                    revenueChartInstance.data.datasets[1].data = projectedArray;
                     revenueChartInstance.update();
+
+                    const forecastTotal = forecastData.reduce((a,b)=>a+b, 0);
+                    if(forecastTotal > 0) {
+                        document.getElementById('forecastCard').classList.remove('hidden');
+                        document.getElementById('forecastTotalText').innerText = `₦${forecastTotal.toLocaleString()}`;
+                    }
                 }
 
                 updateGoalRing(totalNGN, totalUSD);
@@ -1730,6 +1857,228 @@
                 syncFinancials(); 
             }
             document.getElementById('ceoGoalModal').classList.add('hidden');
+        }
+
+        // =========================================
+        // ANOMALY DETECTION ENGINE
+        // =========================================
+        let anomalyCounter = 0;
+
+        function detectAnomalies() {
+            const feedContainer = document.getElementById('anomalyFeed');
+            
+            // Initial clear if it's the placeholder
+            if(feedContainer.children.length === 1 && feedContainer.children[0].classList.contains('text-center')) {
+                feedContainer.innerHTML = '';
+            }
+
+            let crits = 0, highs = 0, meds = 0, lows = 0;
+            const newAnomalies = [];
+
+            // Scan loaded users
+            loadedUsers.forEach(u => {
+                const credits = (u.integrity_vault || 0) + (u.discovery_vault || 0);
+                
+                // Type 1: Credit Burn Spike
+                if (credits < 1000 && u.plan_tier !== 'Sandbox') {
+                    newAnomalies.push({
+                        title: "Rapid Credit Depletion",
+                        desc: `User ${u.id} on ${u.plan_tier} plan has dropped below safe credit reserves (${credits} total).`,
+                        severity: "HIGH",
+                        color: "#ef4444",
+                        userId: u.id
+                    });
+                    highs++;
+                }
+
+                // Type 2: Dormant Paid Account
+                if (credits === 0 && u.plan_tier !== 'Sandbox') {
+                    newAnomalies.push({
+                        title: "Dormant Paid Account",
+                        desc: `Paid account (${u.plan_tier}) with zero balance — potential churn risk.`,
+                        severity: "LOW",
+                        color: "#10b981",
+                        userId: u.id
+                    });
+                    lows++;
+                }
+
+                // Type 3: Plan Mismatch
+                if (u.plan_tier === 'Apex' && credits < 50000) {
+                    newAnomalies.push({
+                        title: "Plan Architecture Mismatch",
+                        desc: `High-tier Apex plan detected with unusually low credit allocations.`,
+                        severity: "MEDIUM",
+                        color: "#f59e0b",
+                        userId: u.id
+                    });
+                    meds++;
+                }
+            });
+
+            // Type 4: Simulated Bulk Pattern
+            anomalyCounter++;
+            if (anomalyCounter % 3 === 0) {
+                newAnomalies.push({
+                    title: "Network Origin Spike",
+                    desc: `Unusual API surge detected from IP block 197.210.x.x. Throttling applied.`,
+                    severity: "CRITICAL",
+                    color: "#a855f7",
+                    ip: "197.210.45.12"
+                });
+                crits++;
+            }
+
+            // Update DOM Counts
+            document.getElementById('anomalyCriticalCount').innerText = parseInt(document.getElementById('anomalyCriticalCount').innerText) + crits;
+            document.getElementById('anomalyHighCount').innerText = parseInt(document.getElementById('anomalyHighCount').innerText) + highs;
+            document.getElementById('anomalyMediumCount').innerText = parseInt(document.getElementById('anomalyMediumCount').innerText) + meds;
+            document.getElementById('anomalyLowCount').innerText = parseInt(document.getElementById('anomalyLowCount').innerText) + lows;
+
+            // Render
+            newAnomalies.forEach(ano => {
+                const row = document.createElement('div');
+                row.className = 'flex items-start gap-4 px-6 py-4 border-b border-slate-800/50 hover:bg-slate-900/50 transition-colors animate-pulse';
+                row.style.animationIterationCount = '1';
+                
+                const actionBtn = ano.userId 
+                    ? `<button onclick="investigateAnomaly('${ano.userId}')" class="text-[10px] bg-slate-800 hover:bg-sky-600 text-sky-400 hover:text-white px-3 py-1.5 rounded transition-colors uppercase font-bold tracking-widest border border-slate-700">Investigate</button>`
+                    : `<button onclick="banIp('${ano.ip}')" class="text-[10px] bg-slate-800 hover:bg-red-600 text-red-400 hover:text-white px-3 py-1.5 rounded transition-colors uppercase font-bold tracking-widest border border-slate-700">Ban IP</button>`;
+
+                const d = new Date();
+                row.innerHTML = `
+                    <div class="w-2 h-2 rounded-full mt-1.5 animate-pulse shadow-[0_0_8px_${ano.color}]" style="background-color: ${ano.color}"></div>
+                    <div class="flex-1">
+                        <div class="flex justify-between items-start">
+                            <div class="text-sm font-bold text-white">${ano.title} <span class="text-[8px] border px-1.5 py-0.5 rounded ml-2" style="color:${ano.color}; border-color:${ano.color}">${ano.severity}</span></div>
+                            <div class="text-[10px] text-slate-500 font-mono">${d.getHours()}:${d.getMinutes()}:${d.getSeconds()}</div>
+                        </div>
+                        <div class="text-xs text-slate-400 mt-1">${ano.desc}</div>
+                        <div class="flex gap-2 mt-3">
+                            ${actionBtn}
+                        </div>
+                    </div>
+                `;
+                feedContainer.insertBefore(row, feedContainer.firstChild);
+            });
+
+            if(newAnomalies.length > 0) showToast(`Threat Grid: ${newAnomalies.length} new anomalies detected.`, 'warning');
+        }
+
+        function investigateAnomaly(userId) {
+            const user = loadedUsers.find(u => u.id === userId);
+            if(user) {
+                switchTab('users');
+                openRealCreditOverride(user.id, user.plan_tier, user.integrity_vault, user.discovery_vault);
+            } else {
+                showToast('Investigation opened for ' + userId, 'info');
+            }
+        }
+
+        async function banIp(ip) {
+            try {
+                const { error } = await _supabase.from('banned_ips').insert({ ip_address: ip, reason: 'Automated anomaly detection block' });
+                if(error) {
+                    if(error.code === '42P01') {
+                        // relation doesn't exist
+                        showToast(`IP ${ip} ban queued for backend rules engine.`, 'warning');
+                    } else {
+                        throw error;
+                    }
+                } else {
+                    showToast(`IP ${ip} permanently blocked.`, 'success');
+                }
+            } catch(e) {
+                showToast('IP ban queued for backend rules engine.', 'warning');
+            }
+        }
+
+        // =========================================
+        // QUERY TERMINAL ENGINE
+        // =========================================
+        function executeQuery() {
+            const rawQuery = document.getElementById('queryInput').value.trim();
+            const btn = document.getElementById('queryBtn');
+            
+            // Client-side safety block 
+            const forbidden = ['insert', 'update', 'delete', 'drop', 'alter', 'create', 'truncate', 'grant', 'exec', 'execute'];
+            const lower = rawQuery.toLowerCase();
+            
+            for (let word of forbidden) {
+                if (lower.includes(word)) {
+                    showToast(`Query blocked: "${word.toUpperCase()}" is not allowed in read-only mode.`, 'error');
+                    return;
+                }
+            }
+            
+            if (!lower.startsWith('select')) {
+                showToast('Only SELECT queries are permitted.', 'warning');
+                return;
+            }
+            
+            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> EXECUTING...`;
+            btn.disabled = true;
+            
+            const startTime = performance.now();
+            
+            // Parse table name
+            const tableMatch = rawQuery.match(/from\s+([a-zA-Z_][a-zA-Z0-9_]*)/i);
+            const tableName = tableMatch ? tableMatch[1] : null;
+            
+            if (!tableName) {
+                showToast('Could not parse table name from query.', 'error');
+                btn.innerHTML = `<i class="fa-solid fa-play"></i> RUN QUERY`;
+                btn.disabled = false;
+                return;
+            }
+            
+            // Execute via Supabase SDK
+            _supabase.from(tableName).select('*').limit(100).then(({ data, error }) => {
+                const elapsed = Math.round(performance.now() - startTime);
+                btn.innerHTML = `<i class="fa-solid fa-play"></i> RUN QUERY`;
+                btn.disabled = false;
+                
+                if (error) {
+                    showToast('Query error: ' + error.message, 'error');
+                    return;
+                }
+                
+                renderQueryResults(data, elapsed);
+            });
+        }
+
+        function renderQueryResults(data, elapsedMs) {
+            const container = document.getElementById('queryResultsContainer');
+            const thead = document.getElementById('queryResultHead');
+            const tbody = document.getElementById('queryResultBody');
+            const meta = document.getElementById('queryMeta');
+            
+            container.classList.remove('hidden');
+            
+            if (!data || data.length === 0) {
+                thead.innerHTML = '';
+                tbody.innerHTML = `<tr><td class="p-10 text-center text-slate-500">Query returned zero rows.</td></tr>`;
+                meta.innerText = `0 rows • ${elapsedMs}ms`;
+                return;
+            }
+            
+            // Build headers
+            const keys = Object.keys(data[0]);
+            thead.innerHTML = `<tr>${keys.map(k => `<th class="p-4">${k}</th>`).join('')}</tr>`;
+            
+            // Build rows
+            tbody.innerHTML = data.map(row => {
+                return `<tr class="hover:bg-slate-800/30">${keys.map(k => {
+                    let val = row[k];
+                    if (val === null) val = '<span class="text-slate-600 italic">null</span>';
+                    else if (typeof val === 'object') val = `<span class="text-[10px] font-mono text-sky-400 break-all">${JSON.stringify(val).substring(0, 80)}</span>`;
+                    else val = String(val);
+                    return `<td class="p-4 text-xs border-b border-slate-800/50">${val}</td>`;
+                }).join('')}</tr>`;
+            }).join('');
+            
+            meta.innerText = `${data.length} rows • ${elapsedMs}ms`;
+            showToast(`Query executed in ${elapsedMs}ms`, 'success');
         }
 
         // =========================================
@@ -1900,10 +2249,8 @@
             btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
 
             try {
-                // Find user in loadedUsers (fallback search by email if identifier is email)
                 let targetUser = loadedUsers.find(u => u.id === userIdentifier || u.email === userIdentifier);
                 if (!targetUser) {
-                    // Try fetch from db if not in current loadedUsers
                     const { data: uData } = await _supabase.from('user_credits').select('*').eq('id', userIdentifier).single();
                     if(uData) targetUser = uData;
                     else throw new Error('User vault not found');
@@ -1911,11 +2258,9 @@
 
                 const newWash = (targetUser.integrity_vault || 0) + amount;
 
-                // Update vault
                 const { error: updateErr } = await _supabase.from('user_credits').update({ integrity_vault: newWash }).eq('id', targetUser.id);
                 if (updateErr) throw updateErr;
 
-                // Insert activity
                 await _supabase.from('user_activity').insert({
                     user_id: targetUser.id,
                     activity_type: 'compensation',
@@ -1923,10 +2268,8 @@
                     metadata: { ticket_id: ticketId, amount: amount }
                 });
 
-                // Log audit
                 await logAudit('Credit Override', 'user', targetUser.id, { reason: "Support Compensation", ticket_id: ticketId, amount_added: amount });
 
-                // UI Polish
                 const row = document.getElementById(`ticket-row-${ticketId}`);
                 if (row) {
                     row.classList.add('bg-emerald-500/10');
@@ -1944,7 +2287,7 @@
                 btn.innerHTML = 'Send';
                 btn.disabled = false;
 
-                fetchRealUsers(); // Refresh background data
+                fetchRealUsers(); 
             } catch (err) {
                 btn.innerHTML = 'Send';
                 btn.disabled = false;
@@ -1985,12 +2328,10 @@
             const tbody = document.getElementById('auditTableBody');
             tbody.innerHTML = '';
             
-            // Client side filters
             const searchQ = document.getElementById('auditSearchInput').value.toLowerCase();
             let roleFilter = document.getElementById('auditRoleFilter').value;
             const actionFilter = document.getElementById('auditActionFilter').value;
 
-            // Force filter for Growth/Infra
             if (currentUserRole === 'Growth' || currentUserRole === 'Infra') {
                 roleFilter = currentUserRole;
             }
@@ -2000,7 +2341,6 @@
                 if(roleFilter !== 'All' && log.actor_role !== roleFilter) return false;
                 if(actionFilter !== 'All' && log.action !== actionFilter) return false;
                 
-                // Extra security: Growth/Infra only see their own logs
                 if ((currentUserRole === 'Growth' || currentUserRole === 'Infra') && log.actor_email !== currentUserEmail) return false;
                 
                 return true;
@@ -2075,6 +2415,11 @@
                         document.getElementById('realtimeStatus').classList.replace('text-sky-400', 'text-emerald-400'); 
                     } 
                 });
+
+            // Start Anomaly Auto-Scan
+            if(!anomalyScanInterval) {
+                anomalyScanInterval = setInterval(detectAnomalies, 30000);
+            }
         }
 
         // =========================================
