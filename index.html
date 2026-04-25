@@ -1385,7 +1385,7 @@
             document.getElementById('statSpm').innerText = 'N/A';
         });
 
-        socket.on('sys-stats', (sys) => {
+                socket.on('sys-stats', (sys) => {
             const statCpu = document.getElementById('statCpu');
             const barCpu = document.getElementById('barCpu');
             const statWorkers = document.getElementById('statWorkers');
@@ -1406,6 +1406,18 @@
                 if (workerDesc) {
                     workerDesc.innerHTML = `<i class="fa-solid fa-check-circle"></i> ${sys.status} (${sys.ram_free}MB Free)`;
                 }
+            }
+
+            // NEW: Ping + Velocity
+            const statPing = document.getElementById('statPing');
+            const statSpm = document.getElementById('statSpm');
+            
+            if (statPing && sys.ping !== undefined) {
+                statPing.innerText = sys.ping + 'ms';
+            }
+            
+            if (statSpm && sys.velocity !== undefined) {
+                statSpm.innerHTML = `${sys.velocity.toLocaleString()} <span class="text-[10px] text-slate-500">req/m</span>`;
             }
         });
 
