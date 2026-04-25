@@ -206,11 +206,88 @@
         .toast-progress { 
             animation: toastProgress 4s linear forwards; 
         }
+
+        /* =========================================
+           HOLOGRAPHIC MODE
+        ========================================= */
+        .holographic-mode .glass-panel {
+            background: rgba(6, 182, 212, 0.05) !important;
+            border-color: rgba(6, 182, 212, 0.3) !important;
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.1), inset 0 0 20px rgba(6, 182, 212, 0.05) !important;
+            transform: perspective(1000px) rotateX(1deg) rotateY(-0.5deg);
+            transition: transform 0.5s ease, box-shadow 0.5s ease;
+        }
+
+        .holographic-mode .glass-panel:hover {
+            transform: perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1.01);
+            box-shadow: 0 0 30px rgba(6, 182, 212, 0.2), inset 0 0 30px rgba(6, 182, 212, 0.1) !important;
+        }
+
+        .holographic-mode .text-sky-400 {
+            color: #22d3ee !important;
+            text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+        }
+
+        .holographic-mode .active-tab {
+            border-left-color: #22d3ee !important;
+            background: linear-gradient(90deg, rgba(34, 211, 238, 0.1) 0%, transparent 100%) !important;
+        }
+
+        .holographic-mode #globeViz {
+            opacity: 1;
+            filter: hue-rotate(180deg) contrast(1.2);
+        }
+
+        .holographic-mode body {
+            background-image: radial-gradient(circle at top right, #083344, #020617);
+        }
+
+        .holographic-mode::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(34, 211, 238, 0.03) 2px,
+                rgba(34, 211, 238, 0.03) 4px
+            );
+            pointer-events: none;
+            z-index: 9990;
+        }
+
+        @keyframes holoFloat {
+            0%, 100% { transform: perspective(1000px) rotateX(1deg) rotateY(-0.5deg) translateY(0); }
+            50% { transform: perspective(1000px) rotateX(1deg) rotateY(-0.5deg) translateY(-4px); }
+        }
+
+        .holographic-mode .glass-panel {
+            animation: holoFloat 6s ease-in-out infinite;
+        }
+
+        .holographic-mode .glass-panel:nth-child(2n) {
+            animation-delay: -2s;
+        }
+
+        .holographic-mode .glass-panel:nth-child(3n) {
+            animation-delay: -4s;
+        }
     </style>
 </head>
 <body id="appBody" class="flex flex-col md:flex-row h-[100dvh] overflow-hidden text-slate-200">
 
     <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <button id="voiceBtn" onclick="toggleVoiceCommand()" class="fixed bottom-6 left-6 z-50 w-14 h-14 rounded-full bg-slate-900 border border-sky-500/50 shadow-[0_0_30px_rgba(56,189,248,0.3)] flex items-center justify-center text-sky-400 hover:text-white hover:border-sky-400 transition-all group" title="Voice Control (Say 'Hey Mailvah')">
+        <i id="voiceIcon" class="fa-solid fa-microphone text-xl relative z-10"></i>
+        <div id="voiceRing" class="hidden absolute inset-0 rounded-full border-2 border-sky-400 animate-ping opacity-30"></div>
+    </button>
+    <div id="voiceTranscript" class="hidden fixed bottom-24 left-6 z-50 glass-panel px-4 py-2 rounded-lg text-xs text-sky-300 max-w-xs transition-opacity duration-300 shadow-xl pointer-events-none"></div>
+
+    <button id="panicBtn" onclick="triggerPanicProtocol()" class="hidden fixed top-6 right-6 z-40 w-12 h-12 rounded-full bg-red-600 border-2 border-red-400 shadow-[0_0_25px_rgba(239,68,68,0.5)] hover:shadow-[0_0_40px_rgba(239,68,68,0.8)] hover:scale-110 transition-all items-center justify-center animate-pulse cursor-pointer" title="PANIC LOCKDOWN" style="display: none;">
+        <i class="fa-solid fa-power-off text-white text-lg"></i>
+    </button>
 
     <div id="commandPalette" class="hidden fixed inset-0 z-[100] bg-slate-950/60 flex items-start justify-center pt-32 px-4 transition-opacity">
         <div class="w-full max-w-2xl bg-slate-900 border border-sky-500/40 rounded-2xl shadow-[0_0_50px_rgba(56,189,248,0.15)] overflow-hidden">
@@ -223,13 +300,20 @@
             </div>
             <div class="p-2 bg-slate-900/50">
                 <div class="px-3 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Suggested Directives</div>
+                
                 <button onclick="closeCommandPalette(); switchTab('finance')" class="w-full text-left px-4 py-3 hover:bg-slate-800 rounded-lg text-sm text-slate-300 flex items-center justify-between group">
                     <span><i class="fa-solid fa-money-bill-transfer w-5 text-emerald-400 mr-2"></i> Open MRR & Financial Hub</span>
                     <i class="fa-solid fa-arrow-right text-slate-600 group-hover:text-emerald-400"></i>
                 </button>
+                
                 <button onclick="closeCommandPalette(); switchTab('support')" class="w-full text-left px-4 py-3 hover:bg-slate-800 rounded-lg text-sm text-slate-300 flex items-center justify-between group">
                     <span><i class="fa-solid fa-headset w-5 text-sky-400 mr-2"></i> Open Support Desk</span>
                     <i class="fa-solid fa-arrow-right text-slate-600 group-hover:text-sky-400"></i>
+                </button>
+
+                <button onclick="closeCommandPalette(); toggleHolographicMode()" class="w-full text-left px-4 py-3 hover:bg-slate-800 rounded-lg text-sm text-slate-300 flex items-center justify-between group">
+                    <span><i class="fa-solid fa-vr-cardboard w-5 text-cyan-400 mr-2"></i> Toggle Holographic Mode (Press H)</span>
+                    <i class="fa-solid fa-arrow-right text-slate-600 group-hover:text-cyan-400"></i>
                 </button>
             </div>
         </div>
@@ -377,25 +461,33 @@
                             <div class="text-2xl font-black text-white font-mono" id="statWorkers">8/8</div>
                             <div class="text-[10px] text-blue-400 mt-1"><i class="fa-solid fa-check-circle"></i> Optimal (400MB Free)</div>
                         </div>
+                        
                         <div class="glass-panel p-4 rounded-xl border-t-2 border-t-purple-500 pointer-events-auto bg-slate-900/80">
                             <div class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">Engine Load</div>
                             <div class="text-2xl font-black text-white font-mono" id="statCpu">14%</div>
-                            <div class="w-full bg-slate-800 h-1 mt-2 rounded overflow-hidden"><div class="bg-purple-500 h-full w-[14%]" id="barCpu"></div></div>
+                            <div class="w-full bg-slate-800 h-1 mt-2 rounded overflow-hidden">
+                                <div class="bg-purple-500 h-full w-[14%]" id="barCpu"></div>
+                            </div>
                         </div>
+                        
                         <div class="glass-panel p-4 rounded-xl border-t-2 border-t-emerald-500 pointer-events-auto bg-slate-900/80">
                             <div class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">Domain Radar</div>
                             <div class="text-2xl font-black text-white font-mono"><i class="fa-solid fa-shield-check text-emerald-400"></i></div>
                             <div class="text-[10px] text-emerald-400 mt-1">IPs Clean / Not Blocked</div>
                         </div>
+                        
                         <div class="glass-panel p-4 rounded-xl border-t-2 border-t-amber-500 pointer-events-auto bg-slate-900/80">
                             <div class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">Port-25 Latency</div>
                             <div class="text-2xl font-black text-white font-mono" id="statPing">42ms</div>
                             <div class="text-[10px] text-amber-400 mt-1">Deep-Scan Handshake</div>
                         </div>
+                        
                         <div class="glass-panel p-4 rounded-xl border-t-2 border-t-sky-500 pointer-events-auto flex flex-col justify-between bg-slate-900/80">
                             <div class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">Wash Velocity</div>
                             <div class="text-2xl font-black text-white font-mono" id="statSpm">1,204 <span class="text-[10px] text-slate-500">req/m</span></div>
-                            <div class="text-[10px] text-sky-400 mt-1 flex items-center"><div class="w-1.5 h-1.5 bg-sky-500 rounded-full mr-1 animate-ping"></div> ~120 Credits Burned/Min</div>
+                            <div class="text-[10px] text-sky-400 mt-1 flex items-center">
+                                <div class="w-1.5 h-1.5 bg-sky-500 rounded-full mr-1 animate-ping"></div> ~120 Credits Burned/Min
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -492,6 +584,7 @@
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                
                 <div class="lg:col-span-2 glass-panel p-6 rounded-2xl border-t-2 border-t-sky-500 relative">
                     
                     <div id="forecastCard" class="hidden absolute top-6 right-6 glass-panel p-4 rounded-xl border-l-2 border-l-sky-500 z-10 w-48 shadow-2xl">
@@ -603,7 +696,6 @@
                 </div>
             </div>
         </div>
-
         <div id="view-support" class="hidden px-4 md:px-10 pb-10">
             <div class="glass-panel rounded-2xl overflow-hidden flex flex-col min-h-[500px]">
                 <div class="p-6 border-b border-slate-800 bg-slate-900/50 flex justify-between items-center">
@@ -634,7 +726,7 @@
                         <input type="text" id="adminUserSearch" oninput="filterUsers()" placeholder="Search user ID..." class="w-full bg-[#050914] border border-slate-700 p-3 pl-10 rounded-xl outline-none text-sm text-white placeholder-slate-600">
                         <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-slate-500"></i>
                     </div>
-                    <button onclick="fetchRealUsers()" class="w-full md:w-auto bg-sky-600/20 text-sky-400 px-4 py-3 rounded-xl text-xs font-bold border border-sky-500/30">
+                    <button onclick="fetchRealUsers()" class="w-full md:w-auto bg-sky-600/20 text-sky-400 px-4 py-3 rounded-xl text-xs font-bold border border-sky-500/30 transition-colors hover:bg-sky-600 hover:text-white">
                         <i class="fa-solid fa-rotate"></i> Manual Refresh
                     </button>
                 </div>
@@ -664,7 +756,7 @@
                     <h3 class="text-lg font-bold text-white mb-4"><i class="fa-solid fa-user-plus text-purple-400 mr-2"></i> Invite Operative</h3>
                     <p class="text-xs text-slate-400 mb-6">Provision a restricted staff account. Supabase will send a welcome email.</p>
                     <div class="space-y-4">
-                        <input type="email" id="inviteStaffEmail" placeholder="name@mailvah.com" class="w-full bg-[#050914] border border-slate-700 p-3 rounded-lg text-sm text-white">
+                        <input type="email" id="inviteStaffEmail" placeholder="name@mailvah.com" class="w-full bg-[#050914] border border-slate-700 p-3 rounded-lg text-sm text-white outline-none focus:border-purple-500">
                         
                         <select id="inviteStaffRole" class="w-full bg-[#050914] border border-slate-700 p-3 rounded-lg text-sm text-white outline-none focus:border-purple-500">
                             <option value="Admin">Admin (Operational God-Mode)</option>
@@ -703,6 +795,13 @@
         </div>
 
         <div id="view-config" class="hidden px-4 md:px-10 pb-10">
+            <div class="glass-panel p-6 rounded-2xl border-t-2 border-t-sky-500 mb-8">
+                <h3 class="text-lg font-bold text-white mb-2"><i class="fa-solid fa-bell text-sky-400 mr-2"></i> Emergency Webhook</h3>
+                <p class="text-xs text-slate-400 mb-4">Slack/Discord webhook URL for panic alerts.</p>
+                <input type="url" id="webhookUrlInput" placeholder="https://hooks.slack.com/services/..." class="w-full bg-[#050914] border border-slate-700 p-3 rounded-lg text-sm text-white font-mono mb-3 outline-none focus:border-sky-500">
+                <button onclick="saveWebhookUrl()" class="action-btn bg-sky-600/20 text-sky-400 border border-sky-500/30 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest hover:bg-sky-600 hover:text-white transition-all">Save Webhook</button>
+            </div>
+
             <div class="glass-panel p-6 md:p-8 rounded-2xl border-t-2 border-t-red-500 mb-8">
                 <h3 class="text-xl font-bold text-white mb-2"><i class="fa-solid fa-power-off text-red-500 mr-2"></i> Global Kill Switch</h3>
                 <div class="flex items-center justify-between bg-slate-900/50 border border-slate-800 p-4 rounded-xl mt-4">
@@ -723,13 +822,13 @@
                 <div class="mb-6">
                     <h3 class="text-xl font-bold text-white mb-2"><i class="fa-solid fa-tower-broadcast text-pink-500 mr-2"></i> Push Notification Override</h3>
                 </div>
-                <textarea id="broadcastMessage" rows="3" class="w-full bg-[#050914] border border-slate-700 p-4 rounded-xl text-sm text-white outline-none mb-4" placeholder="Type broadcast message..."></textarea>
-                <select id="broadcastType" class="w-full bg-[#050914] border border-slate-700 p-3 rounded-xl text-sm text-white outline-none focus:border-pink-500 mb-4">
+                <textarea id="broadcastMessage" rows="3" class="w-full bg-[#050914] border border-slate-700 p-4 rounded-xl text-sm text-white outline-none mb-4 focus:border-pink-500 transition-colors" placeholder="Type broadcast message..."></textarea>
+                <select id="broadcastType" class="w-full bg-[#050914] border border-slate-700 p-3 rounded-xl text-sm text-white outline-none focus:border-pink-500 mb-4 transition-colors">
                     <option value="info">System Update (Blue)</option>
                     <option value="success">Feature Launch (Emerald)</option>
                     <option value="danger">Critical Alert (Red)</option>
                 </select>
-                <button onclick="pushRealBroadcast()" id="broadcastBtn" class="action-btn w-full bg-gradient-to-r from-pink-600 to-rose-600 text-white font-bold py-4 rounded-xl shadow-lg transition-all text-sm tracking-widest">
+                <button onclick="pushRealBroadcast()" id="broadcastBtn" class="action-btn w-full bg-gradient-to-r from-pink-600 to-rose-600 text-white font-bold py-4 rounded-xl shadow-lg transition-all text-sm tracking-widest hover:scale-[1.02]">
                     EXECUTE GLOBAL PUSH
                 </button>
             </div>
@@ -743,8 +842,8 @@
                         <p class="text-[10px] text-slate-500 uppercase tracking-widest">System-wide action log. Cannot be modified by operators.</p>
                     </div>
                     <div class="flex flex-col md:flex-row gap-4 mt-4">
-                        <input type="text" id="auditSearchInput" oninput="filterAuditLogs()" placeholder="Search actor or action..." class="w-full md:w-1/3 bg-[#050914] border border-slate-700 p-2 rounded text-xs text-white placeholder-slate-600 outline-none">
-                        <select id="auditRoleFilter" onchange="filterAuditLogs()" class="w-full md:w-1/4 bg-[#050914] border border-slate-700 p-2 rounded text-xs text-white outline-none">
+                        <input type="text" id="auditSearchInput" oninput="filterAuditLogs()" placeholder="Search actor or action..." class="w-full md:w-1/3 bg-[#050914] border border-slate-700 p-2 rounded text-xs text-white placeholder-slate-600 outline-none focus:border-sky-500">
+                        <select id="auditRoleFilter" onchange="filterAuditLogs()" class="w-full md:w-1/4 bg-[#050914] border border-slate-700 p-2 rounded text-xs text-white outline-none focus:border-sky-500">
                             <option value="All">All Roles</option>
                             <option value="CEO">CEO</option>
                             <option value="Admin">Admin</option>
@@ -752,7 +851,7 @@
                             <option value="Infra">Infra</option>
                             <option value="Investor">Investor</option>
                         </select>
-                        <select id="auditActionFilter" onchange="filterAuditLogs()" class="w-full md:w-1/4 bg-[#050914] border border-slate-700 p-2 rounded text-xs text-white outline-none">
+                        <select id="auditActionFilter" onchange="filterAuditLogs()" class="w-full md:w-1/4 bg-[#050914] border border-slate-700 p-2 rounded text-xs text-white outline-none focus:border-sky-500">
                             <option value="All">All Actions</option>
                             <option value="Credit Override">Credit Override</option>
                             <option value="Staff Invite">Staff Invite</option>
@@ -761,7 +860,7 @@
                             <option value="Broadcast">Broadcast</option>
                             <option value="Ticket Resolved">Ticket Resolved</option>
                         </select>
-                        <button onclick="fetchAuditLogs()" class="w-full md:w-auto bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded text-[10px] font-bold border border-slate-700 uppercase tracking-widest transition-colors">
+                        <button onclick="fetchAuditLogs()" class="w-full md:w-auto bg-slate-800 hover:bg-sky-600 text-white px-4 py-2 rounded text-[10px] font-bold border border-slate-700 hover:border-sky-500 uppercase tracking-widest transition-colors">
                             <i class="fa-solid fa-rotate"></i> Sync
                         </button>
                     </div>
@@ -793,7 +892,7 @@
                 <p class="text-xs text-slate-400 mb-6">Execute SELECT statements safely. Destructive queries are blocked client-side.</p>
                 
                 <div class="relative mb-4">
-                    <textarea id="queryInput" rows="4" class="w-full bg-[#050914] border border-slate-700 p-4 rounded-xl text-sm text-white font-mono outline-none focus:border-sky-500" placeholder="SELECT * FROM user_credits LIMIT 10;"></textarea>
+                    <textarea id="queryInput" rows="4" class="w-full bg-[#050914] border border-slate-700 p-4 rounded-xl text-sm text-white font-mono outline-none focus:border-sky-500 transition-colors" placeholder="SELECT * FROM user_credits LIMIT 10;"></textarea>
                     <div class="absolute bottom-3 right-3 text-[10px] text-slate-600 font-mono">read-only mode</div>
                 </div>
                 
@@ -826,22 +925,22 @@
 
     <div id="creditOverrideModal" class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/90 px-4 backdrop-blur-sm">
         <div class="max-w-sm w-full bg-[#0b1120] border border-sky-500/30 rounded-2xl p-6 shadow-2xl relative">
-            <button onclick="document.getElementById('creditOverrideModal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-500 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            <button onclick="document.getElementById('creditOverrideModal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-500 hover:text-white transition-colors"><i class="fa-solid fa-xmark"></i></button>
             <h3 class="text-lg font-bold text-white mb-1">Vault Override</h3>
             <p class="text-[10px] text-slate-400 mb-6 font-mono break-all" id="overrideUserId">User ID</p>
             
             <div class="space-y-4">
                 <div>
                     <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">Set Wash Balance (I)</label>
-                    <input type="number" id="overrideWash" class="w-full bg-[#050914] border border-slate-700 p-3 rounded-lg text-sm text-white font-mono" value="0">
+                    <input type="number" id="overrideWash" class="w-full bg-[#050914] border border-slate-700 p-3 rounded-lg text-sm text-white font-mono outline-none focus:border-sky-500" value="0">
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">Set Hunt Balance (D)</label>
-                    <input type="number" id="overrideHunt" class="w-full bg-[#050914] border border-slate-700 p-3 rounded-lg text-sm text-white font-mono" value="0">
+                    <input type="number" id="overrideHunt" class="w-full bg-[#050914] border border-slate-700 p-3 rounded-lg text-sm text-white font-mono outline-none focus:border-sky-500" value="0">
                 </div>
                 <div>
                     <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">Force Plan</label>
-                    <select id="overridePlan" class="w-full bg-[#050914] border border-slate-700 p-3 rounded-lg text-sm text-white font-mono">
+                    <select id="overridePlan" class="w-full bg-[#050914] border border-slate-700 p-3 rounded-lg text-sm text-white font-mono outline-none focus:border-sky-500">
                         <option value="Sandbox">Sandbox</option>
                         <option value="Starter">Starter</option>
                         <option value="Growth">Growth</option>
@@ -850,21 +949,21 @@
                         <option value="Apex">Apex</option>
                     </select>
                 </div>
-                <button onclick="executeRealCreditOverride()" id="overrideBtn" class="action-btn w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-lg text-xs mt-4">FORCE UPDATE</button>
+                <button onclick="executeRealCreditOverride()" id="overrideBtn" class="action-btn w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 rounded-lg text-xs mt-4 transition-colors">FORCE UPDATE</button>
             </div>
         </div>
     </div>
 
     <div id="ceoGoalModal" class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/90 px-4 backdrop-blur-sm">
         <div class="max-w-sm w-full bg-[#0b1120] border border-yellow-500/50 rounded-2xl p-6 shadow-[0_0_30px_rgba(234,179,8,0.2)] relative">
-            <button onclick="document.getElementById('ceoGoalModal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-500 hover:text-yellow-500"><i class="fa-solid fa-xmark"></i></button>
+            <button onclick="document.getElementById('ceoGoalModal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-500 hover:text-yellow-500 transition-colors"><i class="fa-solid fa-xmark"></i></button>
             <h3 class="text-lg font-black text-yellow-500 mb-1 tracking-tight">Master Financial Override</h3>
             <p class="text-[10px] text-slate-400 mb-6 font-mono">Adjust the global revenue tracking parameters.</p>
             
             <div class="space-y-4">
                 <div>
                     <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">Set Objective Goal (NGN)</label>
-                    <input type="number" id="ceoNewGoalInput" class="w-full bg-[#050914] border border-slate-700 focus:border-yellow-500 outline-none p-3 rounded-lg text-sm text-white font-mono" value="250000000">
+                    <input type="number" id="ceoNewGoalInput" class="w-full bg-[#050914] border border-slate-700 focus:border-yellow-500 outline-none p-3 rounded-lg text-sm text-white font-mono transition-colors" value="250000000">
                 </div>
                 
                 <button onclick="executeCeoGoalOverride()" class="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-3 rounded-lg text-xs mt-4 transition-colors">UPDATE MATRIX</button>
@@ -874,13 +973,39 @@
 
     <div id="userTimelineModal" class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/90 px-4 backdrop-blur-sm overflow-y-auto py-10">
         <div class="max-w-2xl w-full bg-[#0b1120] border border-sky-500/30 rounded-2xl p-6 shadow-2xl relative mt-auto mb-auto">
-            <button onclick="document.getElementById('userTimelineModal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-500 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            <button onclick="document.getElementById('userTimelineModal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-500 hover:text-white transition-colors"><i class="fa-solid fa-xmark"></i></button>
             <h3 class="text-lg font-bold text-white mb-1">Vault Activity Timeline</h3>
             <p class="text-[10px] text-slate-400 mb-6 font-mono break-all" id="timelineUserId">User ID</p>
             
             <div id="timelineContainer" class="space-y-0 relative pb-4 custom-scrollbar max-h-[60vh] overflow-y-auto pr-2">
                 </div>
         </div>
+    </div>
+
+    <div id="panicModal" class="hidden fixed inset-0 z-[9999] bg-red-950/90 backdrop-blur-xl flex items-center justify-center px-4">
+        <div class="max-w-lg w-full text-center">
+            <div class="w-24 h-24 rounded-full bg-red-600 border-4 border-red-500 shadow-[0_0_50px_rgba(239,68,68,0.8)] flex items-center justify-center mx-auto mb-6 animate-pulse">
+                <i class="fa-solid fa-triangle-exclamation text-white text-4xl"></i>
+            </div>
+            <h2 class="text-3xl font-black text-white tracking-widest mb-4">INITIATE SYSTEM LOCKDOWN?</h2>
+            <p class="text-red-300 text-sm mb-10">This will activate maintenance mode, alert the response team, and freeze all operator terminals. 30-second cancel window.</p>
+            
+            <div class="flex gap-4 justify-center">
+                <button onclick="document.getElementById('panicModal').classList.add('hidden')" class="bg-slate-800 hover:bg-slate-700 text-white px-8 py-3 rounded-lg text-xs font-bold uppercase tracking-widest transition-all">ABORT</button>
+                <button onclick="executeLockdown()" class="bg-red-600 hover:bg-red-500 text-white px-8 py-3 rounded-lg text-xs font-bold uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(239,68,68,0.5)]">CONFIRM LOCKDOWN</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="lockdownOverlay" class="hidden fixed inset-0 z-[9998] bg-red-950/40 pointer-events-none">
+        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center w-full">
+            <div class="text-6xl font-black text-red-500 tracking-widest animate-pulse mb-4 drop-shadow-[0_0_20px_rgba(239,68,68,0.8)]">LOCKDOWN</div>
+            <div id="lockdownCountdown" class="text-red-400 font-mono text-lg tracking-widest drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]">LOCKDOWN ACTIVE — REVERSIBLE IN 30s</div>
+            <button id="cancelLockdownBtn" onclick="cancelLockdown()" class="mt-8 mx-auto pointer-events-auto bg-slate-900 border border-red-500 text-red-400 hover:bg-red-600 hover:text-white px-8 py-4 rounded-lg text-xs font-bold uppercase tracking-widest transition-all hidden block shadow-[0_0_20px_rgba(239,68,68,0.4)]">
+                CANCEL LOCKDOWN
+            </button>
+        </div>
+        <div class="absolute inset-0 bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,rgba(239,68,68,0.03)_2px,rgba(239,68,68,0.03)_4px)] pointer-events-none"></div>
     </div>
 
     <script>
@@ -983,7 +1108,6 @@
             }
             return forecast;
         }
-
         // =========================================
         // CONFIGURATION & GLOBAL VARIABLES
         // =========================================
@@ -1021,6 +1145,197 @@
         }
 
         // =========================================
+        // VOICE COMMAND MODE
+        // =========================================
+        let voiceRecognition = null;
+        let isListening = false;
+        let transcriptTimeout = null;
+
+        function initVoiceCommand() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                showToast('Voice commands not supported in this browser.', 'warning');
+                const vBtn = document.getElementById('voiceBtn');
+                if(vBtn) vBtn.style.display = 'none';
+                return;
+            }
+            
+            voiceRecognition = new SpeechRecognition();
+            voiceRecognition.continuous = true;
+            voiceRecognition.interimResults = false;
+            voiceRecognition.lang = 'en-US';
+            
+            voiceRecognition.onresult = (event) => {
+                const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
+                showVoiceTranscript(transcript);
+                handleVoiceCommand(transcript);
+            };
+            
+            voiceRecognition.onerror = (e) => {
+                console.log('Voice error:', e.error);
+                if (e.error === 'not-allowed') {
+                    showToast('Microphone access denied.', 'error');
+                    toggleVoiceCommand(true); 
+                }
+            };
+        }
+
+        function showVoiceTranscript(text) {
+            const bubble = document.getElementById('voiceTranscript');
+            bubble.innerText = text;
+            bubble.classList.remove('hidden');
+            if(transcriptTimeout) clearTimeout(transcriptTimeout);
+            transcriptTimeout = setTimeout(() => { bubble.classList.add('hidden'); }, 3000);
+        }
+
+        function handleVoiceCommand(transcript) {
+            let matched = false;
+            if (transcript.includes('overlord') || transcript.includes('globe') || transcript.includes('dashboard')) { switchTab('overlord'); matched = true; }
+            else if (transcript.includes('finance') || transcript.includes('money') || transcript.includes('revenue')) { switchTab('finance'); matched = true; }
+            else if (transcript.includes('users') || transcript.includes('clients') || transcript.includes('vaults')) { switchTab('users'); matched = true; }
+            else if (transcript.includes('staff') || transcript.includes('team') || transcript.includes('operatives')) { switchTab('staff'); matched = true; }
+            else if (transcript.includes('support') || transcript.includes('tickets') || transcript.includes('helpdesk')) { switchTab('support'); matched = true; }
+            else if (transcript.includes('security') || transcript.includes('threats') || transcript.includes('anomalies')) { switchTab('security'); detectAnomalies(); matched = true; }
+            else if (transcript.includes('audit') || transcript.includes('logs') || transcript.includes('trail')) { switchTab('audit'); matched = true; }
+            else if (transcript.includes('query') || transcript.includes('terminal') || transcript.includes('sql')) { switchTab('query'); matched = true; }
+            else if (transcript.includes('broadcast') || transcript.includes('notify')) { switchTab('broadcast'); matched = true; }
+            else if (transcript.includes('scan') || transcript.includes('detect')) { detectAnomalies(); showToast('Anomaly scan initiated by voice.', 'info'); matched = true; }
+            else if (transcript.includes('holographic') || transcript.includes('sci-fi') || transcript.includes('matrix')) { toggleHolographicMode(); matched = true; }
+            else if (transcript.includes('panic') || transcript.includes('lockdown') || transcript.includes('shutdown')) { triggerPanicProtocol(); matched = true; }
+            else if (transcript.includes('logout') || transcript.includes('disconnect') || transcript.includes('sign out')) { handleAdminSignOut(); matched = true; }
+            else if (transcript.includes('sync') || transcript.includes('refresh') || transcript.includes('reload')) { fetchAllData(); showToast('All systems refreshed.', 'success'); matched = true; }
+            else if (transcript.includes('ceo mode') || transcript.includes('gold mode') || transcript.includes('overseer')) { 
+                if(currentUserRole === 'CEO') { enforceRBAC('CEO'); showToast('Overseer mode activated.', 'success'); matched = true; } 
+            }
+
+            if(matched) showToast(`Voice: "${transcript}" → Executed`, 'info');
+        }
+
+        function toggleVoiceCommand(forceStop = false) {
+            const vRing = document.getElementById('voiceRing');
+            const vIcon = document.getElementById('voiceIcon');
+            
+            if (!voiceRecognition) initVoiceCommand();
+            if (!voiceRecognition) return;
+
+            if (isListening || forceStop) {
+                try { voiceRecognition.stop(); } catch(e){}
+                isListening = false;
+                vRing.classList.add('hidden');
+                vIcon.classList.remove('fa-waveform', 'animate-pulse');
+                vIcon.classList.add('fa-microphone');
+            } else {
+                try { voiceRecognition.start(); } catch(e){}
+                isListening = true;
+                vRing.classList.remove('hidden');
+                vIcon.classList.remove('fa-microphone');
+                vIcon.classList.add('fa-waveform', 'animate-pulse');
+                showToast('Voice command active. Try: "Show finance" or "Scan threats".', 'info');
+                showVoiceTranscript("Listening...");
+            }
+        }
+
+        // =========================================
+        // HOLOGRAPHIC INTERFACE MODE
+        // =========================================
+        let isHolographic = false;
+
+        function toggleHolographicMode() {
+            isHolographic = !isHolographic;
+            document.body.classList.toggle('holographic-mode');
+            
+            if (isHolographic) {
+                showToast('Holographic interface engaged.', 'info');
+                if (window.world) window.world.atmosphereColor('#22d3ee');
+            } else {
+                showToast('Standard interface restored.', 'info');
+                if (window.world) window.world.atmosphereColor(currentUserRole === 'CEO' ? '#eab308' : '#38bdf8');
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if ((e.key === 'h' || e.key === 'H') && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA' && !e.metaKey && !e.ctrlKey) {
+                toggleHolographicMode();
+            }
+        });
+
+        // =========================================
+        // PANIC LOCKDOWN PROTOCOL
+        // =========================================
+        let panicTimer = null;
+        let isLockedDown = false;
+
+        function triggerPanicProtocol() {
+            document.getElementById('panicModal').classList.remove('hidden');
+        }
+
+        function executeLockdown() {
+            document.getElementById('panicModal').classList.add('hidden');
+            
+            const mainToggle = document.getElementById('maintenanceToggle');
+            if(mainToggle) mainToggle.checked = true;
+            
+            document.getElementById('lockdownOverlay').classList.remove('hidden');
+            
+            logAudit('Panic Lockdown', 'system', 'global', { triggered_by: currentUserRole, timestamp: new Date().toISOString() });
+            
+            const webhookUrl = localStorage.getItem('mailvah_webhook_url');
+            if (webhookUrl) {
+                fetch(webhookUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: `🚨 MAILVAH PANIC TRIGGERED 🚨\nRole: ${currentUserRole}\nTime: ${new Date().toLocaleString()}\nMaintenance mode: ACTIVE` })
+                }).catch(() => {});
+            }
+            
+            let seconds = 30;
+            const countdownEl = document.getElementById('lockdownCountdown');
+            const cancelBtn = document.getElementById('cancelLockdownBtn');
+            
+            isLockedDown = true;
+            cancelBtn.classList.remove('hidden');
+            countdownEl.innerText = `LOCKDOWN ACTIVE — REVERSIBLE IN ${seconds}s`;
+            
+            panicTimer = setInterval(() => {
+                seconds--;
+                countdownEl.innerText = `LOCKDOWN ACTIVE — REVERSIBLE IN ${seconds}s`;
+                if (seconds <= 0) {
+                    clearInterval(panicTimer);
+                    countdownEl.innerText = 'LOCKDOWN PERMANENT — MANUAL OVERRIDE REQUIRED';
+                    cancelBtn.classList.add('hidden');
+                }
+            }, 1000);
+            
+            showToast('PANIC PROTOCOL INITIATED. Maintenance mode active.', 'error');
+        }
+
+        function cancelLockdown() {
+            clearInterval(panicTimer);
+            isLockedDown = false;
+            const mainToggle = document.getElementById('maintenanceToggle');
+            if(mainToggle) mainToggle.checked = false;
+            
+            document.getElementById('lockdownOverlay').classList.add('hidden');
+            logAudit('Panic Cancelled', 'system', 'global', { cancelled_by: currentUserRole });
+            showToast('Lockdown cancelled. Systems resuming.', 'success');
+        }
+
+        function saveWebhookUrl() {
+            const url = document.getElementById('webhookUrlInput').value;
+            localStorage.setItem('mailvah_webhook_url', url);
+            showToast('Emergency webhook saved.', 'success');
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                const vBtn = document.getElementById('voiceBtn');
+                if(vBtn) vBtn.style.display = 'none';
+            }
+            document.getElementById('webhookUrlInput').value = localStorage.getItem('mailvah_webhook_url') || '';
+        });
+
+        // =========================================
         // UI & NAVIGATION CONTROLS
         // =========================================
         function toggleSidebar() {
@@ -1029,23 +1344,6 @@
             sidebar.classList.toggle('-translate-x-full');
             overlay.classList.toggle('hidden');
         }
-
-        const palette = document.getElementById('commandPalette');
-        const cmdInput = document.getElementById('cmdInput');
-        
-        document.addEventListener('keydown', (e) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === 'k') { 
-                e.preventDefault(); 
-                palette.classList.toggle('hidden'); 
-                if (!palette.classList.contains('hidden')) {
-                    cmdInput.focus(); 
-                }
-            }
-            if (e.key === 'Escape' && !palette.classList.contains('hidden')) { 
-                palette.classList.add('hidden'); 
-                cmdInput.value = ''; 
-            }
-        });
         
         function closeCommandPalette() { 
             palette.classList.add('hidden'); 
@@ -1053,186 +1351,40 @@
         }
 
         // =========================================
-        // GOD MODE GLOBE & TELEMETRY
+        // GOD MODE GLOBE
         // =========================================
         let arcData = [];
         const mxOrigin = { lat: 32.77, lng: -96.79, city: "Dallas (ORIGIN)", type: 'origin' };
         let mapLabels = [
-            mxOrigin, 
-            { lat: 51.50, lng: -0.12, city: "London", type: 'target' }, 
-            { lat: 35.68, lng: 139.76, city: "Tokyo", type: 'target' }, 
-            { lat: 50.11, lng: 8.68, city: "Frankfurt", type: 'target' }, 
-            { lat: 6.52, lng: 3.37, city: "Lagos", type: 'target' }, 
-            { lat: 1.35, lng: 103.81, city: "Singapore", type: 'target' }, 
-            { lat: 40.71, lng: -74.00, city: "New York", type: 'target' }
+            mxOrigin, { lat: 51.50, lng: -0.12, city: "London", type: 'target' }, { lat: 35.68, lng: 139.76, city: "Tokyo", type: 'target' }, 
+            { lat: 50.11, lng: 8.68, city: "Frankfurt", type: 'target' }, { lat: 6.52, lng: 3.37, city: "Lagos", type: 'target' }, 
+            { lat: 1.35, lng: 103.81, city: "Singapore", type: 'target' }, { lat: 40.71, lng: -74.00, city: "New York", type: 'target' }
         ];
         
         const globalNodes = [];
-        for(let i=0; i<3000; i++) {
-            globalNodes.push({ 
-                lat: (Math.random() - 0.5) * 170, 
-                lng: (Math.random() - 0.5) * 360, 
-                size: Math.random() * 0.15 + 0.05, 
-                color: ['#1e293b', '#334155', '#0ea5e9'][Math.floor(Math.random() * 3)] 
-            });
-        }
+        for(let i=0; i<3000; i++) globalNodes.push({ lat: (Math.random() - 0.5) * 170, lng: (Math.random() - 0.5) * 360, size: Math.random() * 0.15 + 0.05, color: ['#1e293b', '#334155', '#0ea5e9'][Math.floor(Math.random() * 3)] });
 
         function initGlobe() {
             const globeContainer = document.getElementById('globeViz');
-            
             window.world = Globe()(globeContainer)
                 .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg')
-                .backgroundColor('#050810')
-                .showAtmosphere(true)
-                .atmosphereColor('#38bdf8')
-                .atmosphereAltitude(0.15)
-                .labelsData(mapLabels)
-                .labelLat('lat')
-                .labelLng('lng')
-                .labelText('city')
+                .backgroundColor('#050810').showAtmosphere(true).atmosphereColor('#38bdf8').atmosphereAltitude(0.15)
+                .labelsData(mapLabels).labelLat('lat').labelLng('lng').labelText('city')
                 .labelSize(d => d.type === 'origin' ? 1.5 : (d.type === 'target' ? 1 : 0.6))
                 .labelDotRadius(d => d.type === 'origin' ? 0.8 : (d.type === 'target' ? 0.5 : 0.2))
-                .labelColor(d => d.type === 'origin' ? '#38bdf8' : (d.type === 'target' ? '#ffffff' : 'rgba(100, 116, 139, 0.5)'))
-                .labelResolution(2)
-                .pointsData(globalNodes)
-                .pointLat('lat')
-                .pointLng('lng')
-                .pointColor('color')
-                .pointAltitude(0.01)
-                .pointRadius('size')
-                .pointsMerge(true)
-                .arcColor('color')
-                .arcStroke(0.3)
-                .arcDashLength(0.1)
-                .arcDashGap(0.05)
-                .arcDashInitialGap(() => Math.random())
-                .arcDashAnimateTime(1000)
-                .arcsData(arcData)
+                .labelColor(d => d.type === 'origin' ? '#38bdf8' : (d.type === 'target' ? '#ffffff' : 'rgba(100, 116, 139, 0.5)')).labelResolution(2)
+                .pointsData(globalNodes).pointLat('lat').pointLng('lng').pointColor('color').pointAltitude(0.01).pointRadius('size').pointsMerge(true)
+                .arcColor('color').arcStroke(0.3).arcDashLength(0.1).arcDashGap(0.05).arcDashInitialGap(() => Math.random()).arcDashAnimateTime(1000).arcsData(arcData)
                 .pointOfView({ lat: 20, lng: -40, altitude: 2.2 }); 
                 
-            window.world.controls().autoRotate = true; 
-            window.world.controls().autoRotateSpeed = 0.5; 
-            window.world.controls().enableZoom = true; 
-            window.world.controls().minDistance = 120; 
-            window.world.controls().maxDistance = 400; 
+            window.world.controls().autoRotate = true; window.world.controls().autoRotateSpeed = 0.5; window.world.controls().enableZoom = true; window.world.controls().minDistance = 120; window.world.controls().maxDistance = 400; 
             
-            fetch('https://restcountries.com/v3.1/all?fields=name,latlng')
-                .then(res => res.json())
-                .then(countries => { 
-                    const countryNodes = countries.map(c => ({ 
-                        lat: c.latlng[0], 
-                        lng: c.latlng[1], 
-                        city: c.name.common, 
-                        type: 'country' 
-                    })); 
-                    mapLabels = [...mapLabels, ...countryNodes]; 
-                    window.world.labelsData(mapLabels); 
-                })
-                .catch(e => console.log('Matrix country fetch passed over.'));
+            fetch('https://restcountries.com/v3.1/all?fields=name,latlng').then(res => res.json()).then(countries => { 
+                const countryNodes = countries.map(c => ({ lat: c.latlng[0], lng: c.latlng[1], city: c.name.common, type: 'country' })); 
+                mapLabels = [...mapLabels, ...countryNodes]; window.world.labelsData(mapLabels); 
+            }).catch(e => console.log('Matrix country fetch passed over.'));
         }
         initGlobe();
-
-        const socket = io('https://pulse.mailvah.com'); 
-        const feed = document.getElementById('liveActionFeed');
-        
-        socket.on('sys-stats', (sys) => {
-            document.getElementById('statCpu').innerText = sys.cpu_load + '%'; 
-            document.getElementById('barCpu').style.width = sys.cpu_load + '%';
-            
-            if (sys.cpu_load > 85) {
-                document.getElementById('barCpu').classList.replace('bg-purple-500', 'bg-red-500'); 
-            } else {
-                document.getElementById('barCpu').classList.replace('bg-red-500', 'bg-purple-500');
-            }
-            
-            document.getElementById('statWorkers').innerText = sys.workers + '/8'; 
-            document.querySelector('#statWorkers + div').innerHTML = `<i class="fa-solid fa-check-circle"></i> ${sys.status} (${sys.ram_free}MB Free)`;
-        });
-        
-        socket.on('new-log', (logText) => {
-            const waitingText = document.getElementById('feedWaiting'); 
-            if (waitingText) waitingText.remove();
-            
-            let textColor = 'text-emerald-300'; 
-            let borderColor = 'border-emerald-500'; 
-            let arcBeamColor = ['#10B981', '#34D399']; 
-            let drawArc = false;
-            
-            if(logText.includes('FATAL') || logText.includes('BOUNCE') || logText.includes('NOT exist') || logText.includes('[-]') || logText.includes('DEAD')) { 
-                textColor = 'text-red-400'; 
-                borderColor = 'border-red-500'; 
-                arcBeamColor = ['#EF4444', '#F87171']; 
-                drawArc = true; 
-            } else if (logText.includes('SUCCESS') || logText.includes('SAFE') || logText.includes('VALID') || logText.includes('[+]')) {
-                drawArc = true;
-            }
-            
-            let cleanLog = logText;
-            
-            if (logText.includes('| COORDS:')) {
-                const parts = logText.split('| COORDS: '); 
-                cleanLog = parts[0]; 
-                const coordString = parts[1].trim().split(' TO ');
-                if (coordString.length === 2) { 
-                    const start = coordString[0].split(','); 
-                    const end = coordString[1].split(','); 
-                    arcData.push({ 
-                        startLat: parseFloat(start[0]), 
-                        startLng: parseFloat(start[1]), 
-                        endLat: parseFloat(end[0]), 
-                        endLng: parseFloat(end[1]), 
-                        color: arcBeamColor 
-                    }); 
-                    if (arcData.length > 40) arcData.shift(); 
-                    window.world.arcsData([...arcData]); 
-                }
-            } else if (drawArc) {
-                const potentialTargets = mapLabels.filter(h => h.type !== 'origin'); 
-                const hub = potentialTargets[Math.floor(Math.random() * potentialTargets.length)];
-                const tgtLat = hub.lat + (Math.random() - 0.5) * 2; 
-                const tgtLng = hub.lng + (Math.random() - 0.5) * 2; 
-                arcData.push({ 
-                    startLat: mxOrigin.lat, 
-                    startLng: mxOrigin.lng, 
-                    endLat: tgtLat, 
-                    endLng: tgtLng, 
-                    color: arcBeamColor 
-                }); 
-                if (arcData.length > 40) arcData.shift(); 
-                window.world.arcsData([...arcData]); 
-            }
-            
-            const logLine = document.createElement('div'); 
-            logLine.className = `feed-item border-l-2 pl-2 py-1 ${borderColor} bg-slate-800/30 ${textColor} font-mono text-[10px] break-all`; 
-            logLine.innerText = `> ${cleanLog.trim()}`; 
-            feed.appendChild(logLine); 
-            feed.scrollTop = feed.scrollHeight; 
-            
-            if (feed.children.length > 100) {
-                feed.removeChild(feed.firstChild);
-            }
-        });
-
-        function fireFinancialArc(currency) {
-            if(!window.world) return;
-            let startHub = mapLabels.find(l => l.city === 'London'); 
-            if(currency === 'NGN') startHub = mapLabels.find(l => l.city === 'Lagos');
-            if(currency === 'USD') startHub = mapLabels.find(l => l.city === 'New York');
-            
-            if(startHub) {
-                const beamColor = currentUserRole === 'CEO' ? ['#eab308', '#fef08a'] : ['#38bdf8', '#bae6fd'];
-                arcData.push({ 
-                    startLat: startHub.lat, 
-                    startLng: startHub.lng, 
-                    endLat: mxOrigin.lat, 
-                    endLng: mxOrigin.lng, 
-                    color: beamColor 
-                });
-                
-                if (arcData.length > 40) arcData.shift();
-                window.world.arcsData([...arcData]); 
-            }
-        }
 
         // =========================================
         // ROLE-BASED ACCESS CONTROL (RBAC) LOGIC
@@ -1241,72 +1393,52 @@
             currentUserRole = role;
             
             const allTabs = ['tab-users', 'tab-staff', 'tab-finance', 'tab-config', 'tab-broadcast', 'tab-support', 'tab-security', 'tab-audit', 'tab-query'];
-            allTabs.forEach(id => { 
-                const tabEl = document.getElementById(id); 
-                if(tabEl) tabEl.classList.remove('hidden'); 
-            });
+            allTabs.forEach(id => { const tabEl = document.getElementById(id); if(tabEl) tabEl.classList.remove('hidden'); });
             
             document.getElementById('nav-group-telemetry').classList.remove('hidden'); 
             document.getElementById('nav-group-control').classList.remove('hidden'); 
             document.getElementById('nav-group-economy').classList.remove('hidden');
             document.getElementById('ceoFinanceControls').classList.add('hidden');
             
-            document.querySelectorAll('.action-btn').forEach(btn => { 
-                btn.disabled = false; 
-                btn.classList.remove('opacity-50', 'cursor-not-allowed'); 
-            });
+            document.querySelectorAll('.action-btn').forEach(btn => { btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed'); });
             
             document.getElementById('appBody').classList.remove('ceo-skin'); 
             document.getElementById('brandingLogo').classList.replace('from-yellow-400', 'from-sky-400'); 
             document.getElementById('brandingLogo').classList.replace('to-yellow-600', 'to-blue-600');
             
+            const panicBtn = document.getElementById('panicBtn');
+
             if (role === 'CEO') {
                 document.getElementById('appBody').classList.add('ceo-skin'); 
                 document.getElementById('brandingLogo').classList.replace('from-sky-400', 'from-yellow-400'); 
                 document.getElementById('brandingLogo').classList.replace('to-blue-600', 'to-yellow-600'); 
                 document.getElementById('roleDisplayBadge').innerText = "OVERSEER NETWORK";
                 document.getElementById('ceoFinanceControls').classList.remove('hidden');
+                if(panicBtn) panicBtn.style.display = 'flex';
                 if(revenueChartInstance) updateChartColors(true);
             } else {
                 if(revenueChartInstance) updateChartColors(false);
             }
+
+            if (role === 'Admin') {
+                if(panicBtn) panicBtn.style.display = 'flex';
+                document.getElementById('tab-finance').classList.add('hidden'); 
+                document.getElementById('tab-staff').classList.add('hidden'); 
+            } 
             
-            // Query Terminal Visibility
             if(role !== 'CEO' && role !== 'Admin') {
+                if(panicBtn) panicBtn.style.display = 'none';
                 document.getElementById('tab-query').classList.add('hidden');
             }
 
-            if (role === 'Admin') { 
-                document.getElementById('tab-finance').classList.add('hidden'); 
-                document.getElementById('tab-staff').classList.add('hidden'); 
-            } 
-            else if (role === 'Growth') { 
-                document.getElementById('tab-security').classList.add('hidden'); 
-                document.getElementById('tab-staff').classList.add('hidden'); 
-                document.getElementById('tab-config').classList.add('hidden'); 
-                document.getElementById('tab-support').classList.add('hidden'); 
-                document.getElementById('auditRoleFilter').classList.add('hidden');
-                document.getElementById('auditRoleFilter').value = 'Growth'; 
+            if (role === 'Growth') { 
+                document.getElementById('tab-security').classList.add('hidden'); document.getElementById('tab-staff').classList.add('hidden'); document.getElementById('tab-config').classList.add('hidden'); document.getElementById('tab-support').classList.add('hidden'); document.getElementById('auditRoleFilter').classList.add('hidden'); document.getElementById('auditRoleFilter').value = 'Growth'; 
             } 
             else if (role === 'Infra') { 
-                document.getElementById('tab-finance').classList.add('hidden'); 
-                document.getElementById('tab-users').classList.add('hidden'); 
-                document.getElementById('tab-staff').classList.add('hidden'); 
-                document.getElementById('tab-broadcast').classList.add('hidden'); 
-                document.getElementById('nav-group-economy').classList.add('hidden'); 
-                document.getElementById('auditRoleFilter').classList.add('hidden');
-                document.getElementById('auditRoleFilter').value = 'Infra'; 
+                document.getElementById('tab-finance').classList.add('hidden'); document.getElementById('tab-users').classList.add('hidden'); document.getElementById('tab-staff').classList.add('hidden'); document.getElementById('tab-broadcast').classList.add('hidden'); document.getElementById('nav-group-economy').classList.add('hidden'); document.getElementById('auditRoleFilter').classList.add('hidden'); document.getElementById('auditRoleFilter').value = 'Infra'; 
             } 
             else if (role === 'Investor') { 
-                document.getElementById('tab-security').classList.add('hidden'); 
-                document.getElementById('tab-staff').classList.add('hidden'); 
-                document.getElementById('tab-config').classList.add('hidden'); 
-                document.getElementById('tab-broadcast').classList.add('hidden'); 
-                document.getElementById('tab-support').classList.add('hidden'); 
-                document.querySelectorAll('.action-btn').forEach(btn => { 
-                    btn.disabled = true; 
-                    btn.classList.add('opacity-50', 'cursor-not-allowed'); 
-                }); 
+                document.getElementById('tab-security').classList.add('hidden'); document.getElementById('tab-staff').classList.add('hidden'); document.getElementById('tab-config').classList.add('hidden'); document.getElementById('tab-broadcast').classList.add('hidden'); document.getElementById('tab-support').classList.add('hidden'); document.querySelectorAll('.action-btn').forEach(btn => { btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed'); }); 
             }
         }
 
@@ -1323,23 +1455,22 @@
             
             const activeBtn = document.getElementById('tab-' + tab); 
             if(activeBtn) activeBtn.classList.add('active-tab', 'text-slate-200');
-            
             document.getElementById('view-' + tab).classList.remove('hidden');
             
             const header = document.getElementById('globalTabHeader');
+            const panicBtn = document.getElementById('panicBtn');
+
             if(tab === 'overlord') { 
                 header.classList.add('hidden'); 
-                if(window.world) {
-                    setTimeout(() => window.dispatchEvent(new Event('resize')), 100); 
-                }
+                if(panicBtn) panicBtn.style.display = 'none';
+                if(window.world) setTimeout(() => window.dispatchEvent(new Event('resize')), 100); 
             } else { 
                 header.classList.remove('hidden'); 
                 header.classList.add('flex'); 
+                if(panicBtn && (currentUserRole === 'CEO' || currentUserRole === 'Admin')) panicBtn.style.display = 'flex';
             }
             
-            if(tab === 'finance') {
-                initSplineChart();
-            }
+            if(tab === 'finance') initSplineChart();
 
             const titles = { 
                 'users': ['Client Vaults', 'Manage operator identities, manual credit overrides, and security bans.'], 
@@ -1359,24 +1490,15 @@
             }
             
             const sidebar = document.getElementById('sidebar'); 
-            if(!sidebar.classList.contains('-translate-x-full')) {
-                toggleSidebar();
-            }
+            if(!sidebar.classList.contains('-translate-x-full')) toggleSidebar();
         }
         
         window.addEventListener('resize', () => { 
-            if(window.world && document.getElementById('view-overlord').classList.contains('block')) {
-                window.world.width(window.innerWidth).height(window.innerHeight); 
-            }
+            if(window.world && document.getElementById('view-overlord').classList.contains('block')) window.world.width(window.innerWidth).height(window.innerHeight); 
         });
 
-        // Initialize Chart.js Spline Matrix with Forecast
         function initSplineChart() {
-            if (revenueChartInstance) {
-                revenueChartInstance.destroy();
-                revenueChartInstance = null;
-            }
-
+            if (revenueChartInstance) { revenueChartInstance.destroy(); revenueChartInstance = null; }
             const ctx = document.getElementById('revenueChart').getContext('2d');
             const isCEO = currentUserRole === 'CEO';
             const lineColor = isCEO ? '#eab308' : '#38bdf8';
@@ -1390,63 +1512,11 @@
                 data: {
                     labels: ['W-5', 'W-4', 'W-3', 'W-2', 'W-1', 'NOW', 'W+1', 'W+2', 'W+3', 'W+4'],
                     datasets: [
-                        { 
-                            label: 'Revenue Velocity', 
-                            data: [0,0,0,0,0,0, null, null, null, null], 
-                            borderColor: lineColor, 
-                            backgroundColor: gradient, 
-                            borderWidth: 3, 
-                            tension: 0.4, 
-                            fill: true, 
-                            pointBackgroundColor: '#0b1120', 
-                            pointBorderColor: lineColor, 
-                            pointBorderWidth: 2, 
-                            pointRadius: 4, 
-                            pointHoverRadius: 6 
-                        },
-                        {
-                            label: 'Projected',
-                            data: [null, null, null, null, null, null, null, null, null, null],
-                            borderColor: lineColor,
-                            backgroundColor: 'transparent',
-                            borderWidth: 3,
-                            borderDash: [6, 4],
-                            tension: 0.4,
-                            fill: false,
-                            pointRadius: 0,
-                            pointHoverRadius: 4,
-                            spanGaps: true
-                        }
+                        { label: 'Revenue Velocity', data: [0,0,0,0,0,0, null, null, null, null], borderColor: lineColor, backgroundColor: gradient, borderWidth: 3, tension: 0.4, fill: true, pointBackgroundColor: '#0b1120', pointBorderColor: lineColor, pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 6 },
+                        { label: 'Projected', data: [null, null, null, null, null, null, null, null, null, null], borderColor: lineColor, backgroundColor: 'transparent', borderWidth: 3, borderDash: [6, 4], tension: 0.4, fill: false, pointRadius: 0, pointHoverRadius: 4, spanGaps: true }
                     ]
                 },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    plugins: { 
-                        legend: { display: false }, 
-                        tooltip: { 
-                            backgroundColor: 'rgba(15, 23, 42, 0.9)', 
-                            titleColor: '#fff', 
-                            bodyColor: lineColor, 
-                            borderColor: 'rgba(51, 65, 85, 0.5)', 
-                            borderWidth: 1 
-                        } 
-                    }, 
-                    scales: { 
-                        x: { 
-                            grid: { display: false, color: 'rgba(51, 65, 85, 0.2)' }, 
-                            ticks: { color: '#64748b', font: { family: 'Inter', size: 10 } } 
-                        }, 
-                        y: { 
-                            grid: { color: 'rgba(51, 65, 85, 0.2)', borderDash: [5, 5] }, 
-                            ticks: { 
-                                color: '#64748b', 
-                                font: { family: 'Inter', size: 10 }, 
-                                callback: function(value) { return '₦' + value; } 
-                            } 
-                        } 
-                    } 
-                }
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(15, 23, 42, 0.9)', titleColor: '#fff', bodyColor: lineColor, borderColor: 'rgba(51, 65, 85, 0.5)', borderWidth: 1 } }, scales: { x: { grid: { display: false, color: 'rgba(51, 65, 85, 0.2)' }, ticks: { color: '#64748b', font: { family: 'Inter', size: 10 } } }, y: { grid: { color: 'rgba(51, 65, 85, 0.2)', borderDash: [5, 5] }, ticks: { color: '#64748b', font: { family: 'Inter', size: 10 }, callback: function(value) { return '₦' + value; } } } } }
             });
         }
 
@@ -1461,9 +1531,7 @@
             revenueChartInstance.data.datasets[0].borderColor = lineColor;
             revenueChartInstance.data.datasets[0].backgroundColor = gradient;
             revenueChartInstance.data.datasets[0].pointBorderColor = lineColor;
-            
             revenueChartInstance.data.datasets[1].borderColor = lineColor;
-
             revenueChartInstance.options.plugins.tooltip.bodyColor = lineColor;
             revenueChartInstance.update();
         }
@@ -1472,55 +1540,20 @@
         // AUTHENTICATION LOGIC
         // =========================================
         async function handleAdminLogin() {
-            const email = document.getElementById('authEmail').value.trim(); 
-            const password = document.getElementById('authPassword').value; 
-            const msg = document.getElementById('authMessage'); 
-            
+            const email = document.getElementById('authEmail').value.trim(); const password = document.getElementById('authPassword').value; const msg = document.getElementById('authMessage'); 
             if(!email || !password) return;
-            
-            const btn = document.getElementById('loginBtn'); 
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> AUTHENTICATING...`;
-            
+            const btn = document.getElementById('loginBtn'); btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> AUTHENTICATING...`;
             const { data: authData, error: authError } = await _supabase.auth.signInWithPassword({ email, password });
+            if (authError) { msg.innerText = "ACCESS DENIED: " + authError.message; msg.classList.remove('hidden'); btn.innerHTML = `<i class="fa-solid fa-fingerprint"></i> INITIATE CLEARANCE`; return; }
             
-            if (authError) { 
-                msg.innerText = "ACCESS DENIED: " + authError.message; 
-                msg.classList.remove('hidden'); 
-                btn.innerHTML = `<i class="fa-solid fa-fingerprint"></i> INITIATE CLEARANCE`; 
-                return; 
-            }
+            let resolvedRole = 'Admin'; const { data: staffData } = await _supabase.from('staff_users').select('role').eq('email', email).single();
+            if (staffData && staffData.role) resolvedRole = staffData.role; else if (email.includes('founder') || email === 'admin@mailvah.com' || email === 'ceo@mailvah.com') resolvedRole = 'CEO';
             
-            let resolvedRole = 'Admin'; 
-            const { data: staffData } = await _supabase.from('staff_users').select('role').eq('email', email).single();
-            
-            if (staffData && staffData.role) {
-                resolvedRole = staffData.role; 
-            } else if (email.includes('founder') || email === 'admin@mailvah.com' || email === 'ceo@mailvah.com') {
-                resolvedRole = 'CEO';
-            }
-            
-            currentUserEmail = authData.user.email;
-            enforceRBAC(resolvedRole); 
-            document.getElementById('adminAuthContainer').classList.add('hidden'); 
-            document.getElementById('staffIdentityDisplay').innerText = `${resolvedRole}: ${currentUserEmail}`;
-            
-            switchTab('overlord'); 
-            fetchAllData(); 
-            initRealtimeSubscriptions();
+            currentUserEmail = authData.user.email; enforceRBAC(resolvedRole); document.getElementById('adminAuthContainer').classList.add('hidden'); document.getElementById('staffIdentityDisplay').innerText = `${resolvedRole}: ${currentUserEmail}`;
+            switchTab('overlord'); fetchAllData(); initRealtimeSubscriptions();
         }
-        
-        async function handleAdminSignOut() { 
-            await _supabase.auth.signOut(); 
-            window.location.reload(); 
-        }
-
-        function fetchAllData() { 
-            fetchRealUsers(); 
-            fetchRealStaff(); 
-            fetchSupportTickets(); 
-            fetchFinanceData(); 
-            fetchAuditLogs();
-        }
+        async function handleAdminSignOut() { await _supabase.auth.signOut(); window.location.reload(); }
+        function fetchAllData() { fetchRealUsers(); fetchRealStaff(); fetchSupportTickets(); fetchFinanceData(); fetchAuditLogs(); }
 
         // =========================================
         // CLIENT VAULTS & USERS
@@ -1528,88 +1561,26 @@
         async function fetchRealUsers() {
             document.getElementById('adminUserTableBody').innerHTML = getTableSkeleton(5);
             const { data: creditsData } = await _supabase.from('user_credits').select('*');
-            if(creditsData) {
-                loadedUsers = creditsData; 
-                renderUsersTable(loadedUsers); 
-                
-                let paidCount = 0;
-                loadedUsers.forEach(u => { 
-                    if(u.plan_tier !== 'Sandbox') paidCount++; 
-                });
-                document.getElementById('livePaidCount').innerText = paidCount;
-            }
+            if(creditsData) { loadedUsers = creditsData; renderUsersTable(loadedUsers); let paidCount = 0; loadedUsers.forEach(u => { if(u.plan_tier !== 'Sandbox') paidCount++; }); document.getElementById('livePaidCount').innerText = paidCount; }
         }
         
         function renderUsersTable(usersArray) {
-            const tbody = document.getElementById('adminUserTableBody'); 
-            tbody.innerHTML = '';
-            
-            if(usersArray.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="p-10 text-center text-slate-500">No users found.</td></tr>';
-                return;
-            }
-
+            const tbody = document.getElementById('adminUserTableBody'); tbody.innerHTML = '';
+            if(usersArray.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="p-10 text-center text-slate-500">No users found.</td></tr>'; return; }
             usersArray.forEach(u => {
-                let actionHTML = '';
-                let viewTimelineHTML = `<button onclick="openUserTimeline('${u.id}')" title="View Activity Timeline" class="text-[10px] bg-slate-800 hover:bg-emerald-600 text-emerald-400 hover:text-white px-3 py-2 rounded-lg transition-colors border border-slate-700 mr-2"><i class="fa-solid fa-eye"></i></button>`;
-
-                if(currentUserRole !== 'Investor') {
-                    actionHTML = `
-                        ${viewTimelineHTML}
-                        <button onclick="openRealCreditOverride('${u.id}', '${u.plan_tier}', ${u.integrity_vault || 0}, ${u.discovery_vault || 0})" class="action-btn text-[10px] bg-slate-800 hover:bg-sky-600 text-sky-400 hover:text-white px-3 py-2 rounded-lg transition-colors uppercase font-bold tracking-widest border border-slate-700">Edit</button>
-                    `;
-                } else {
-                    actionHTML = viewTimelineHTML; 
-                }
-                
-                tbody.innerHTML += `
-                    <tr class="hover:bg-slate-800/30 border-b border-slate-800/50">
-                        <td class="p-4 font-mono text-[10px] text-slate-400 break-all">${u.id}</td>
-                        <td class="p-4"><span class="text-[10px] bg-slate-800 border border-slate-700 px-2 py-1 rounded text-sky-300 font-bold uppercase tracking-widest">${u.plan_tier || 'Sandbox'}</span></td>
-                        <td class="p-4 font-mono text-right text-emerald-400">${(u.integrity_vault || 0).toLocaleString()}</td>
-                        <td class="p-4 font-mono text-right text-amber-400">${(u.discovery_vault || 0).toLocaleString()}</td>
-                        <td class="p-4 text-right whitespace-nowrap flex justify-end items-center">${actionHTML}</td>
-                    </tr>
-                `;
+                let actionHTML = ''; let viewTimelineHTML = `<button onclick="openUserTimeline('${u.id}')" title="View Activity Timeline" class="text-[10px] bg-slate-800 hover:bg-emerald-600 text-emerald-400 hover:text-white px-3 py-2 rounded-lg transition-colors border border-slate-700 mr-2"><i class="fa-solid fa-eye"></i></button>`;
+                if(currentUserRole !== 'Investor') actionHTML = `${viewTimelineHTML}<button onclick="openRealCreditOverride('${u.id}', '${u.plan_tier}', ${u.integrity_vault || 0}, ${u.discovery_vault || 0})" class="action-btn text-[10px] bg-slate-800 hover:bg-sky-600 text-sky-400 hover:text-white px-3 py-2 rounded-lg transition-colors uppercase font-bold tracking-widest border border-slate-700">Edit</button>`;
+                else actionHTML = viewTimelineHTML; 
+                tbody.innerHTML += `<tr class="hover:bg-slate-800/30 border-b border-slate-800/50"><td class="p-4 font-mono text-[10px] text-slate-400 break-all">${u.id}</td><td class="p-4"><span class="text-[10px] bg-slate-800 border border-slate-700 px-2 py-1 rounded text-sky-300 font-bold uppercase tracking-widest">${u.plan_tier || 'Sandbox'}</span></td><td class="p-4 font-mono text-right text-emerald-400">${(u.integrity_vault || 0).toLocaleString()}</td><td class="p-4 font-mono text-right text-amber-400">${(u.discovery_vault || 0).toLocaleString()}</td><td class="p-4 text-right whitespace-nowrap flex justify-end items-center">${actionHTML}</td></tr>`;
             });
         }
-        
-        function filterUsers() { 
-            const query = document.getElementById('adminUserSearch').value.toLowerCase(); 
-            renderUsersTable(loadedUsers.filter(u => (u.id && u.id.toLowerCase().includes(query)))); 
-        }
-        
-        function openRealCreditOverride(userId, plan, wash, hunt) { 
-            targetOverrideUserId = userId; 
-            document.getElementById('overrideUserId').innerText = userId; 
-            document.getElementById('overrideWash').value = wash; 
-            document.getElementById('overrideHunt').value = hunt;
-            document.getElementById('overridePlan').value = plan || 'Sandbox'; 
-            document.getElementById('creditOverrideModal').classList.remove('hidden'); 
-        }
-        
+        function filterUsers() { const query = document.getElementById('adminUserSearch').value.toLowerCase(); renderUsersTable(loadedUsers.filter(u => (u.id && u.id.toLowerCase().includes(query)))); }
+        function openRealCreditOverride(userId, plan, wash, hunt) { targetOverrideUserId = userId; document.getElementById('overrideUserId').innerText = userId; document.getElementById('overrideWash').value = wash; document.getElementById('overrideHunt').value = hunt; document.getElementById('overridePlan').value = plan || 'Sandbox'; document.getElementById('creditOverrideModal').classList.remove('hidden'); }
         async function executeRealCreditOverride() { 
-            const newWash = parseInt(document.getElementById('overrideWash').value);
-            const newHunt = parseInt(document.getElementById('overrideHunt').value);
-            const newPlan = document.getElementById('overridePlan').value;
-            
-            const oldUser = loadedUsers.find(u => u.id === targetOverrideUserId) || {};
-            const oldWash = oldUser.integrity_vault || 0;
-            const oldHunt = oldUser.discovery_vault || 0;
-            const oldPlan = oldUser.plan_tier || 'Sandbox';
-
-            const { error } = await _supabase.from('user_credits').update({ 
-                integrity_vault: newWash, 
-                discovery_vault: newHunt, 
-                plan_tier: newPlan 
-            }).eq('id', targetOverrideUserId); 
-            
-            if(error) {
-                showToast(error.message, 'error');
-            } else {
-                await logAudit('Credit Override', 'user', targetOverrideUserId, { previous_wash: oldWash, new_wash: newWash, previous_hunt: oldHunt, new_hunt: newHunt, previous_plan: oldPlan, new_plan: newPlan });
-                showToast("Vault Updated", 'success');
-            }
+            const newWash = parseInt(document.getElementById('overrideWash').value); const newHunt = parseInt(document.getElementById('overrideHunt').value); const newPlan = document.getElementById('overridePlan').value;
+            const oldUser = loadedUsers.find(u => u.id === targetOverrideUserId) || {}; const oldWash = oldUser.integrity_vault || 0; const oldHunt = oldUser.discovery_vault || 0; const oldPlan = oldUser.plan_tier || 'Sandbox';
+            const { error } = await _supabase.from('user_credits').update({ integrity_vault: newWash, discovery_vault: newHunt, plan_tier: newPlan }).eq('id', targetOverrideUserId); 
+            if(error) showToast(error.message, 'error'); else { await logAudit('Credit Override', 'user', targetOverrideUserId, { previous_wash: oldWash, new_wash: newWash, previous_hunt: oldHunt, new_hunt: newHunt, previous_plan: oldPlan, new_plan: newPlan }); showToast("Vault Updated", 'success'); }
             document.getElementById('creditOverrideModal').classList.add('hidden'); 
         }
 
@@ -1617,55 +1588,22 @@
         // USER ACTIVITY TIMELINE MODAL
         // =========================================
         async function openUserTimeline(userId) {
-            const modal = document.getElementById('userTimelineModal');
-            const container = document.getElementById('timelineContainer');
-            document.getElementById('timelineUserId').innerText = userId;
-            modal.classList.remove('hidden');
-            
+            const modal = document.getElementById('userTimelineModal'); const container = document.getElementById('timelineContainer'); document.getElementById('timelineUserId').innerText = userId; modal.classList.remove('hidden');
             container.innerHTML = '<div class="flex justify-center py-10"><i class="fa-solid fa-circle-notch fa-spin text-sky-500 text-2xl"></i></div>';
-
             try {
-                const { data: activityData } = await _supabase.from('user_activity').select('*').eq('user_id', userId).order('created_at', { ascending: false });
-                const { data: ticketData } = await _supabase.from('support_tickets').select('*').eq('user_id', userId);
-                
+                const { data: activityData } = await _supabase.from('user_activity').select('*').eq('user_id', userId).order('created_at', { ascending: false }); const { data: ticketData } = await _supabase.from('support_tickets').select('*').eq('user_id', userId);
                 let timeline = [];
                 if (activityData) timeline.push(...activityData.map(a => ({ type: 'activity', date: new Date(a.created_at), title: a.activity_type, desc: a.description })));
                 if (ticketData) timeline.push(...ticketData.map(t => ({ type: 'ticket', date: new Date(t.created_at), title: `Ticket: ${t.issue}`, desc: `Status: ${t.status}` })));
-
                 timeline.sort((a, b) => b.date - a.date);
-
-                if (timeline.length === 0) {
-                    container.innerHTML = '<div class="text-center text-slate-500 py-10">No activity recorded for this vault.</div>';
-                    return;
-                }
-
+                if (timeline.length === 0) { container.innerHTML = '<div class="text-center text-slate-500 py-10">No activity recorded for this vault.</div>'; return; }
                 let html = '';
                 timeline.forEach(item => {
-                    let icon = 'fa-bolt text-sky-400';
-                    if (item.type === 'ticket') icon = 'fa-ticket text-amber-400';
-                    if (item.title.toLowerCase().includes('plan')) icon = 'fa-arrow-up text-purple-400';
-                    if (item.title.toLowerCase().includes('compensate') || item.title.toLowerCase().includes('credit')) icon = 'fa-coins text-emerald-400';
-
-                    html += `
-                        <div class="flex gap-4 mb-4 relative">
-                            <div class="absolute left-4 top-8 bottom-[-16px] w-px bg-slate-800"></div>
-                            <div class="relative z-10 w-8 h-8 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center shrink-0">
-                                <i class="fa-solid ${icon} text-[10px]"></i>
-                            </div>
-                            <div class="glass-panel p-3 rounded-lg flex-1">
-                                <div class="flex justify-between items-start mb-1">
-                                    <h4 class="text-xs font-bold text-white">${item.title}</h4>
-                                    <span class="text-[9px] text-slate-500 font-mono">${item.date.toLocaleString()}</span>
-                                </div>
-                                <p class="text-[10px] text-slate-400">${item.desc}</p>
-                            </div>
-                        </div>
-                    `;
+                    let icon = 'fa-bolt text-sky-400'; if (item.type === 'ticket') icon = 'fa-ticket text-amber-400'; if (item.title.toLowerCase().includes('plan')) icon = 'fa-arrow-up text-purple-400'; if (item.title.toLowerCase().includes('compensate') || item.title.toLowerCase().includes('credit')) icon = 'fa-coins text-emerald-400';
+                    html += `<div class="flex gap-4 mb-4 relative"><div class="absolute left-4 top-8 bottom-[-16px] w-px bg-slate-800"></div><div class="relative z-10 w-8 h-8 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center shrink-0"><i class="fa-solid ${icon} text-[10px]"></i></div><div class="glass-panel p-3 rounded-lg flex-1"><div class="flex justify-between items-start mb-1"><h4 class="text-xs font-bold text-white">${item.title}</h4><span class="text-[9px] text-slate-500 font-mono">${item.date.toLocaleString()}</span></div><p class="text-[10px] text-slate-400">${item.desc}</p></div></div>`;
                 });
                 container.innerHTML = html;
-            } catch (err) {
-                container.innerHTML = `<div class="text-center text-red-500 py-10">Failed to load timeline: ${err.message}</div>`;
-            }
+            } catch (err) { container.innerHTML = `<div class="text-center text-red-500 py-10">Failed to load timeline: ${err.message}</div>`; }
         }
 
         // =========================================
@@ -1673,191 +1611,67 @@
         // =========================================
         async function fetchFinanceData() {
             document.getElementById('dunningTableBody').innerHTML = getTableSkeleton(5);
-            
-            const { data: dunningData } = await _supabase.from('dunning_queue').select('*');
-            const dunningBody = document.getElementById('dunningTableBody');
-            dunningBody.innerHTML = '';
-            
+            const { data: dunningData } = await _supabase.from('dunning_queue').select('*'); const dunningBody = document.getElementById('dunningTableBody'); dunningBody.innerHTML = '';
             let churnRisk = 0;
             if (dunningData && dunningData.length > 0) {
                 dunningData.forEach(d => {
                     if(d.status !== 'Resolved') churnRisk += Number(d.amount_owed);
-                    let actionHTML = '';
-                    if(currentUserRole !== 'Investor') {
-                        actionHTML = `<button onclick="showToast('Dunning sequence initiated for ₦' + Number(${d.amount_owed}).toLocaleString(), 'info')" class="action-btn bg-red-500/10 text-red-400 px-3 py-1 rounded text-[10px] uppercase font-bold border border-red-500/30 hover:bg-red-600 hover:text-white transition-colors">Recover</button>`;
-                    }
-                    dunningBody.innerHTML += `
-                        <tr class="hover:bg-slate-800/30 border-b border-slate-800/50">
-                            <td class="p-4 font-bold text-white">${d.customer_email}</td>
-                            <td class="p-4 text-[10px] text-slate-500">${d.issue}</td>
-                            <td class="p-4 text-right font-mono text-red-400">₦${Number(d.amount_owed).toLocaleString()}</td>
-                            <td class="p-4 text-center"><span class="border text-[9px] px-2 py-1 rounded tracking-widest uppercase text-amber-400 border-amber-500/20 bg-amber-500/10">${d.status}</span></td>
-                            <td class="p-4 text-right">${actionHTML}</td>
-                        </tr>
-                    `;
+                    let actionHTML = ''; if(currentUserRole !== 'Investor') actionHTML = `<button onclick="showToast('Dunning sequence initiated for ₦' + Number(${d.amount_owed}).toLocaleString(), 'info')" class="action-btn bg-red-500/10 text-red-400 px-3 py-1 rounded text-[10px] uppercase font-bold border border-red-500/30 hover:bg-red-600 hover:text-white transition-colors">Recover</button>`;
+                    dunningBody.innerHTML += `<tr class="hover:bg-slate-800/30 border-b border-slate-800/50"><td class="p-4 font-bold text-white">${d.customer_email}</td><td class="p-4 text-[10px] text-slate-500">${d.issue}</td><td class="p-4 text-right font-mono text-red-400">₦${Number(d.amount_owed).toLocaleString()}</td><td class="p-4 text-center"><span class="border text-[9px] px-2 py-1 rounded tracking-widest uppercase text-amber-400 border-amber-500/20 bg-amber-500/10">${d.status}</span></td><td class="p-4 text-right">${actionHTML}</td></tr>`;
                 });
-            } else {
-                dunningBody.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-slate-500">No pending failed payments.</td></tr>`;
-            }
+            } else dunningBody.innerHTML = `<tr><td colspan="5" class="p-10 text-center text-slate-500">No pending failed payments.</td></tr>`;
             document.getElementById('liveChurnRisk').innerText = '₦' + churnRisk.toLocaleString();
-
-            const { data: promoData } = await _supabase.from('promo_codes').select('*');
-            const promoContainer = document.getElementById('promoContainer');
-            promoContainer.innerHTML = '';
-            
-            if (promoData && promoData.length > 0) {
-                promoData.forEach(p => {
-                    promoContainer.innerHTML += `
-                        <div class="flex items-center justify-between bg-slate-900/50 border border-slate-700/50 p-3 rounded-lg mb-2">
-                            <div>
-                                <div class="text-sm font-bold text-white font-mono">${p.code}</div>
-                                <div class="text-[10px] text-slate-400">${p.discount_desc}</div>
-                            </div>
-                            <div class="text-right">
-                                <div class="text-sm font-bold text-emerald-400">${p.uses} Uses</div>
-                            </div>
-                        </div>
-                    `;
-                });
-            } else {
-                promoContainer.innerHTML = '<div class="text-center text-slate-500 text-xs py-4">No active promotions.</div>';
-            }
+            const { data: promoData } = await _supabase.from('promo_codes').select('*'); const promoContainer = document.getElementById('promoContainer'); promoContainer.innerHTML = '';
+            if (promoData && promoData.length > 0) { promoData.forEach(p => { promoContainer.innerHTML += `<div class="flex items-center justify-between bg-slate-900/50 border border-slate-700/50 p-3 rounded-lg mb-2"><div><div class="text-sm font-bold text-white font-mono">${p.code}</div><div class="text-[10px] text-slate-400">${p.discount_desc}</div></div><div class="text-right"><div class="text-sm font-bold text-emerald-400">${p.uses} Uses</div></div></div>`; }); } 
+            else promoContainer.innerHTML = '<div class="text-center text-slate-500 text-xs py-4">No active promotions.</div>';
         }
 
         async function syncFinancials() {
-            const btn = document.getElementById('fetchLedgerBtn');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> SYNCING LIVE...`;
-            btn.disabled = true;
-
-            let ledgerSkeleton = '';
-            for(let i=0; i<5; i++) {
-                ledgerSkeleton += `
-                    <div class="grid grid-cols-12 gap-4 px-6 py-4 border-b border-slate-800/50 animate-pulse items-center">
-                        <div class="col-span-3 flex gap-3 items-center"><div class="w-8 h-8 rounded-full bg-slate-800"></div><div class="h-3 bg-slate-800 rounded w-1/2"></div></div>
-                        <div class="col-span-4"><div class="h-3 bg-slate-800 rounded w-3/4"></div></div>
-                        <div class="col-span-2 text-right"><div class="h-3 bg-slate-800 rounded w-full"></div></div>
-                        <div class="col-span-3 text-center"><div class="h-4 bg-slate-800 rounded-full w-1/2 mx-auto"></div></div>
-                    </div>`;
-            }
+            const btn = document.getElementById('fetchLedgerBtn'); const originalText = btn.innerHTML; btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> SYNCING LIVE...`; btn.disabled = true;
+            let ledgerSkeleton = ''; for(let i=0; i<5; i++) ledgerSkeleton += `<div class="grid grid-cols-12 gap-4 px-6 py-4 border-b border-slate-800/50 animate-pulse items-center"><div class="col-span-3 flex gap-3 items-center"><div class="w-8 h-8 rounded-full bg-slate-800"></div><div class="h-3 bg-slate-800 rounded w-1/2"></div></div><div class="col-span-4"><div class="h-3 bg-slate-800 rounded w-3/4"></div></div><div class="col-span-2 text-right"><div class="h-3 bg-slate-800 rounded w-full"></div></div><div class="col-span-3 text-center"><div class="h-4 bg-slate-800 rounded-full w-1/2 mx-auto"></div></div></div>`;
             document.getElementById('ledgerTableBody').innerHTML = ledgerSkeleton;
-
             try {
                 const { data, error } = await _supabase.functions.invoke('fetch-flutterwave');
+                btn.innerHTML = originalText; btn.disabled = false;
+                if (error) throw error; if (data.error) throw new Error(data.error);
+                const tbody = document.getElementById('ledgerTableBody'); tbody.innerHTML = '';
+                const transactions = data.data || []; document.getElementById('txCountBadge').innerText = `${transactions.length} TXNs`;
+                if(transactions.length === 0) { tbody.innerHTML = '<div class="p-10 text-center text-slate-500 text-xs">No recent transactions synced from gateway.</div>'; return; }
                 
-                btn.innerHTML = originalText; 
-                btn.disabled = false;
-                
-                if (error) throw error; 
-                if (data.error) throw new Error(data.error);
-
-                const tbody = document.getElementById('ledgerTableBody');
-                tbody.innerHTML = '';
-                
-                const transactions = data.data || [];
-                document.getElementById('txCountBadge').innerText = `${transactions.length} TXNs`;
-
-                if(transactions.length === 0) {
-                    tbody.innerHTML = '<div class="p-10 text-center text-slate-500 text-xs">No recent transactions synced from gateway.</div>';
-                    return;
-                }
-                
-                let totalNGN = 0; 
-                let totalUSD = 0;
-                let chartDataArray = [0,0,0,0,0,0]; 
-
+                let totalNGN = 0; let totalUSD = 0; let chartDataArray = [0,0,0,0,0,0]; 
                 transactions.forEach((tx, index) => {
                     if(tx.status === 'successful') {
-                        if(tx.currency === 'NGN') totalNGN += tx.amount;
-                        else if(tx.currency === 'USD') totalUSD += tx.amount;
-                        else totalUSD += (tx.amount / 100); 
-
-                        setTimeout(() => fireFinancialArc(tx.currency), index * 300);
-                        chartDataArray[index % 6] += (tx.currency === 'NGN' ? tx.amount : tx.amount * 1500); 
+                        if(tx.currency === 'NGN') totalNGN += tx.amount; else if(tx.currency === 'USD') totalUSD += tx.amount; else totalUSD += (tx.amount / 100); 
+                        setTimeout(() => fireFinancialArc(tx.currency), index * 300); chartDataArray[index % 6] += (tx.currency === 'NGN' ? tx.amount : tx.amount * 1500); 
                     }
-
-                    const statusColor = tx.status === 'successful' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-red-400 bg-red-500/10 border-red-500/20';
-                    const icon = tx.status === 'successful' ? '<i class="fa-solid fa-arrow-right-to-bracket text-emerald-500"></i>' : '<i class="fa-solid fa-triangle-exclamation text-red-500"></i>';
-                    const d = new Date(tx.created_at);
-                    
-                    const row = document.createElement('div');
-                    row.className = `grid grid-cols-12 gap-4 px-6 py-4 border-b border-slate-800/50 hover:bg-slate-900/80 transition-colors ticker-row items-center`;
-                    row.style.animationDelay = `${index * 0.1}s`;
-                    row.innerHTML = `
-                        <div class="col-span-3 flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center">${icon}</div>
-                            <div>
-                                <div class="text-xs text-white font-mono">${tx.tx_ref ? tx.tx_ref.substring(0,9) : 'SYS_SYNC'}</div>
-                                <div class="text-[9px] text-slate-500">${d.getHours()}:${d.getMinutes()} • ${d.toLocaleDateString()}</div>
-                            </div>
-                        </div>
-                        <div class="col-span-4">
-                            <div class="text-xs text-white font-medium truncate">${tx.customer ? tx.customer.email : 'External Client'}</div>
-                            <div class="text-[9px] text-slate-400 font-mono tracking-widest">${tx.payment_type || 'CARD'}</div>
-                        </div>
-                        <div class="col-span-2 text-right">
-                            <div class="text-sm font-black text-white font-mono">${tx.currency} ${tx.amount.toLocaleString()}</div>
-                        </div>
-                        <div class="col-span-3 text-center">
-                            <span class="border text-[9px] px-3 py-1 rounded-full tracking-widest uppercase ${statusColor} font-bold">${tx.status}</span>
-                        </div>
-                    `;
+                    const statusColor = tx.status === 'successful' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-red-400 bg-red-500/10 border-red-500/20'; const icon = tx.status === 'successful' ? '<i class="fa-solid fa-arrow-right-to-bracket text-emerald-500"></i>' : '<i class="fa-solid fa-triangle-exclamation text-red-500"></i>'; const d = new Date(tx.created_at);
+                    const row = document.createElement('div'); row.className = `grid grid-cols-12 gap-4 px-6 py-4 border-b border-slate-800/50 hover:bg-slate-900/80 transition-colors ticker-row items-center`; row.style.animationDelay = `${index * 0.1}s`;
+                    row.innerHTML = `<div class="col-span-3 flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center">${icon}</div><div><div class="text-xs text-white font-mono">${tx.tx_ref ? tx.tx_ref.substring(0,9) : 'SYS_SYNC'}</div><div class="text-[9px] text-slate-500">${d.getHours()}:${d.getMinutes()} • ${d.toLocaleDateString()}</div></div></div><div class="col-span-4"><div class="text-xs text-white font-medium truncate">${tx.customer ? tx.customer.email : 'External Client'}</div><div class="text-[9px] text-slate-400 font-mono tracking-widest">${tx.payment_type || 'CARD'}</div></div><div class="col-span-2 text-right"><div class="text-sm font-black text-white font-mono">${tx.currency} ${tx.amount.toLocaleString()}</div></div><div class="col-span-3 text-center"><span class="border text-[9px] px-3 py-1 rounded-full tracking-widest uppercase ${statusColor} font-bold">${tx.status}</span></div>`;
                     tbody.appendChild(row);
                 });
-
-                document.getElementById('liveMrrNGN').innerText = '₦' + (totalNGN > 0 ? totalNGN.toLocaleString() : '0');
-                document.getElementById('liveMrrUSD').innerText = '$' + (totalUSD > 0 ? totalUSD.toLocaleString() : '0');
+                document.getElementById('liveMrrNGN').innerText = '₦' + (totalNGN > 0 ? totalNGN.toLocaleString() : '0'); document.getElementById('liveMrrUSD').innerText = '$' + (totalUSD > 0 ? totalUSD.toLocaleString() : '0');
 
                 if(revenueChartInstance) {
                     revenueChartInstance.data.datasets[0].data = [...chartDataArray.reverse(), null, null, null, null];
-                    
                     const forecastData = calculateForecast(chartDataArray, 4);
                     const projectedArray = [null, null, null, null, null, chartDataArray[chartDataArray.length-1], ...forecastData];
-                    
                     revenueChartInstance.data.datasets[1].data = projectedArray;
                     revenueChartInstance.update();
-
                     const forecastTotal = forecastData.reduce((a,b)=>a+b, 0);
-                    if(forecastTotal > 0) {
-                        document.getElementById('forecastCard').classList.remove('hidden');
-                        document.getElementById('forecastTotalText').innerText = `₦${forecastTotal.toLocaleString()}`;
-                    }
+                    if(forecastTotal > 0) { document.getElementById('forecastCard').classList.remove('hidden'); document.getElementById('forecastTotalText').innerText = `₦${forecastTotal.toLocaleString()}`; }
                 }
-
-                updateGoalRing(totalNGN, totalUSD);
-                showToast("API connection secured. Data synced.", "info");
-                
-            } catch (err) {
-                btn.innerHTML = originalText; 
-                btn.disabled = false;
-                showToast("Edge Function Error: " + err.message, 'error');
-            }
+                updateGoalRing(totalNGN, totalUSD); showToast("API connection secured. Data synced.", "info");
+            } catch (err) { btn.innerHTML = originalText; btn.disabled = false; showToast("Edge Function Error: " + err.message, 'error'); }
         }
 
         // --- CEO GOAL OVERRIDE CONTROLS ---
         function updateGoalRing(ngnRevenue, usdRevenue) {
-            const combinedRevenue = ngnRevenue + (usdRevenue * 1500); 
-            let pct = (combinedRevenue / currentFinancialGoal) * 100;
-            if(pct > 100) pct = 100;
-            document.getElementById('goalPercentage').innerText = pct.toFixed(1) + '%';
-            document.getElementById('goalCircle').style.strokeDasharray = `${pct}, 100`;
-            let formattedGoal = (currentFinancialGoal / 1000000).toFixed(0) + 'M';
-            document.getElementById('currentGoalText').innerText = formattedGoal;
+            const combinedRevenue = ngnRevenue + (usdRevenue * 1500); let pct = (combinedRevenue / currentFinancialGoal) * 100; if(pct > 100) pct = 100;
+            document.getElementById('goalPercentage').innerText = pct.toFixed(1) + '%'; document.getElementById('goalCircle').style.strokeDasharray = `${pct}, 100`;
+            let formattedGoal = (currentFinancialGoal / 1000000).toFixed(0) + 'M'; document.getElementById('currentGoalText').innerText = formattedGoal;
         }
-
-        function openCeoGoalOverride() {
-            document.getElementById('ceoNewGoalInput').value = currentFinancialGoal;
-            document.getElementById('ceoGoalModal').classList.remove('hidden');
-        }
-
-        function executeCeoGoalOverride() {
-            const newGoal = parseInt(document.getElementById('ceoNewGoalInput').value);
-            if(newGoal > 0) {
-                currentFinancialGoal = newGoal;
-                syncFinancials(); 
-            }
-            document.getElementById('ceoGoalModal').classList.add('hidden');
-        }
+        function openCeoGoalOverride() { document.getElementById('ceoNewGoalInput').value = currentFinancialGoal; document.getElementById('ceoGoalModal').classList.remove('hidden'); }
+        function executeCeoGoalOverride() { const newGoal = parseInt(document.getElementById('ceoNewGoalInput').value); if(newGoal > 0) { currentFinancialGoal = newGoal; syncFinancials(); } document.getElementById('ceoGoalModal').classList.add('hidden'); }
 
         // =========================================
         // ANOMALY DETECTION ENGINE
@@ -1866,219 +1680,84 @@
 
         function detectAnomalies() {
             const feedContainer = document.getElementById('anomalyFeed');
+            if(feedContainer.children.length === 1 && feedContainer.children[0].classList.contains('text-center')) feedContainer.innerHTML = '';
             
-            // Initial clear if it's the placeholder
-            if(feedContainer.children.length === 1 && feedContainer.children[0].classList.contains('text-center')) {
-                feedContainer.innerHTML = '';
-            }
-
             let crits = 0, highs = 0, meds = 0, lows = 0;
             const newAnomalies = [];
 
-            // Scan loaded users
             loadedUsers.forEach(u => {
                 const credits = (u.integrity_vault || 0) + (u.discovery_vault || 0);
-                
-                // Type 1: Credit Burn Spike
-                if (credits < 1000 && u.plan_tier !== 'Sandbox') {
-                    newAnomalies.push({
-                        title: "Rapid Credit Depletion",
-                        desc: `User ${u.id} on ${u.plan_tier} plan has dropped below safe credit reserves (${credits} total).`,
-                        severity: "HIGH",
-                        color: "#ef4444",
-                        userId: u.id
-                    });
-                    highs++;
-                }
-
-                // Type 2: Dormant Paid Account
-                if (credits === 0 && u.plan_tier !== 'Sandbox') {
-                    newAnomalies.push({
-                        title: "Dormant Paid Account",
-                        desc: `Paid account (${u.plan_tier}) with zero balance — potential churn risk.`,
-                        severity: "LOW",
-                        color: "#10b981",
-                        userId: u.id
-                    });
-                    lows++;
-                }
-
-                // Type 3: Plan Mismatch
-                if (u.plan_tier === 'Apex' && credits < 50000) {
-                    newAnomalies.push({
-                        title: "Plan Architecture Mismatch",
-                        desc: `High-tier Apex plan detected with unusually low credit allocations.`,
-                        severity: "MEDIUM",
-                        color: "#f59e0b",
-                        userId: u.id
-                    });
-                    meds++;
-                }
+                if (credits < 1000 && u.plan_tier !== 'Sandbox') { newAnomalies.push({ title: "Rapid Credit Depletion", desc: `User ${u.id} on ${u.plan_tier} plan has dropped below safe credit reserves (${credits} total).`, severity: "HIGH", color: "#ef4444", userId: u.id }); highs++; }
+                if (credits === 0 && u.plan_tier !== 'Sandbox') { newAnomalies.push({ title: "Dormant Paid Account", desc: `Paid account (${u.plan_tier}) with zero balance — potential churn risk.`, severity: "LOW", color: "#10b981", userId: u.id }); lows++; }
+                if (u.plan_tier === 'Apex' && credits < 50000) { newAnomalies.push({ title: "Plan Architecture Mismatch", desc: `High-tier Apex plan detected with unusually low credit allocations.`, severity: "MEDIUM", color: "#f59e0b", userId: u.id }); meds++; }
             });
 
-            // Type 4: Simulated Bulk Pattern
             anomalyCounter++;
-            if (anomalyCounter % 3 === 0) {
-                newAnomalies.push({
-                    title: "Network Origin Spike",
-                    desc: `Unusual API surge detected from IP block 197.210.x.x. Throttling applied.`,
-                    severity: "CRITICAL",
-                    color: "#a855f7",
-                    ip: "197.210.45.12"
-                });
-                crits++;
-            }
+            if (anomalyCounter % 3 === 0) { newAnomalies.push({ title: "Network Origin Spike", desc: `Unusual API surge detected from IP block 197.210.x.x. Throttling applied.`, severity: "CRITICAL", color: "#a855f7", ip: "197.210.45.12" }); crits++; }
 
-            // Update DOM Counts
             document.getElementById('anomalyCriticalCount').innerText = parseInt(document.getElementById('anomalyCriticalCount').innerText) + crits;
             document.getElementById('anomalyHighCount').innerText = parseInt(document.getElementById('anomalyHighCount').innerText) + highs;
             document.getElementById('anomalyMediumCount').innerText = parseInt(document.getElementById('anomalyMediumCount').innerText) + meds;
             document.getElementById('anomalyLowCount').innerText = parseInt(document.getElementById('anomalyLowCount').innerText) + lows;
 
-            // Render
             newAnomalies.forEach(ano => {
-                const row = document.createElement('div');
-                row.className = 'flex items-start gap-4 px-6 py-4 border-b border-slate-800/50 hover:bg-slate-900/50 transition-colors animate-pulse';
-                row.style.animationIterationCount = '1';
-                
-                const actionBtn = ano.userId 
-                    ? `<button onclick="investigateAnomaly('${ano.userId}')" class="text-[10px] bg-slate-800 hover:bg-sky-600 text-sky-400 hover:text-white px-3 py-1.5 rounded transition-colors uppercase font-bold tracking-widest border border-slate-700">Investigate</button>`
-                    : `<button onclick="banIp('${ano.ip}')" class="text-[10px] bg-slate-800 hover:bg-red-600 text-red-400 hover:text-white px-3 py-1.5 rounded transition-colors uppercase font-bold tracking-widest border border-slate-700">Ban IP</button>`;
-
+                const row = document.createElement('div'); row.className = 'flex items-start gap-4 px-6 py-4 border-b border-slate-800/50 hover:bg-slate-900/50 transition-colors animate-pulse'; row.style.animationIterationCount = '1';
+                const actionBtn = ano.userId ? `<button onclick="investigateAnomaly('${ano.userId}')" class="text-[10px] bg-slate-800 hover:bg-sky-600 text-sky-400 hover:text-white px-3 py-1.5 rounded transition-colors uppercase font-bold tracking-widest border border-slate-700">Investigate</button>` : `<button onclick="banIp('${ano.ip}')" class="text-[10px] bg-slate-800 hover:bg-red-600 text-red-400 hover:text-white px-3 py-1.5 rounded transition-colors uppercase font-bold tracking-widest border border-slate-700">Ban IP</button>`;
                 const d = new Date();
-                row.innerHTML = `
-                    <div class="w-2 h-2 rounded-full mt-1.5 animate-pulse shadow-[0_0_8px_${ano.color}]" style="background-color: ${ano.color}"></div>
-                    <div class="flex-1">
-                        <div class="flex justify-between items-start">
-                            <div class="text-sm font-bold text-white">${ano.title} <span class="text-[8px] border px-1.5 py-0.5 rounded ml-2" style="color:${ano.color}; border-color:${ano.color}">${ano.severity}</span></div>
-                            <div class="text-[10px] text-slate-500 font-mono">${d.getHours()}:${d.getMinutes()}:${d.getSeconds()}</div>
-                        </div>
-                        <div class="text-xs text-slate-400 mt-1">${ano.desc}</div>
-                        <div class="flex gap-2 mt-3">
-                            ${actionBtn}
-                        </div>
-                    </div>
-                `;
+                row.innerHTML = `<div class="w-2 h-2 rounded-full mt-1.5 animate-pulse shadow-[0_0_8px_${ano.color}]" style="background-color: ${ano.color}"></div><div class="flex-1"><div class="flex justify-between items-start"><div class="text-sm font-bold text-white">${ano.title} <span class="text-[8px] border px-1.5 py-0.5 rounded ml-2" style="color:${ano.color}; border-color:${ano.color}">${ano.severity}</span></div><div class="text-[10px] text-slate-500 font-mono">${d.getHours()}:${d.getMinutes()}:${d.getSeconds()}</div></div><div class="text-xs text-slate-400 mt-1">${ano.desc}</div><div class="flex gap-2 mt-3">${actionBtn}</div></div>`;
                 feedContainer.insertBefore(row, feedContainer.firstChild);
             });
-
             if(newAnomalies.length > 0) showToast(`Threat Grid: ${newAnomalies.length} new anomalies detected.`, 'warning');
         }
 
         function investigateAnomaly(userId) {
             const user = loadedUsers.find(u => u.id === userId);
-            if(user) {
-                switchTab('users');
-                openRealCreditOverride(user.id, user.plan_tier, user.integrity_vault, user.discovery_vault);
-            } else {
-                showToast('Investigation opened for ' + userId, 'info');
-            }
+            if(user) { switchTab('users'); openRealCreditOverride(user.id, user.plan_tier, user.integrity_vault, user.discovery_vault); } 
+            else showToast('Investigation opened for ' + userId, 'info');
         }
 
         async function banIp(ip) {
             try {
                 const { error } = await _supabase.from('banned_ips').insert({ ip_address: ip, reason: 'Automated anomaly detection block' });
-                if(error) {
-                    if(error.code === '42P01') {
-                        // relation doesn't exist
-                        showToast(`IP ${ip} ban queued for backend rules engine.`, 'warning');
-                    } else {
-                        throw error;
-                    }
-                } else {
-                    showToast(`IP ${ip} permanently blocked.`, 'success');
-                }
-            } catch(e) {
-                showToast('IP ban queued for backend rules engine.', 'warning');
-            }
+                if(error) { if(error.code === '42P01') showToast(`IP ${ip} ban queued for backend rules engine.`, 'warning'); else throw error; } 
+                else showToast(`IP ${ip} permanently blocked.`, 'success');
+            } catch(e) { showToast('IP ban queued for backend rules engine.', 'warning'); }
         }
 
         // =========================================
         // QUERY TERMINAL ENGINE
         // =========================================
         function executeQuery() {
-            const rawQuery = document.getElementById('queryInput').value.trim();
-            const btn = document.getElementById('queryBtn');
+            const rawQuery = document.getElementById('queryInput').value.trim(); const btn = document.getElementById('queryBtn');
+            const forbidden = ['insert', 'update', 'delete', 'drop', 'alter', 'create', 'truncate', 'grant', 'exec', 'execute']; const lower = rawQuery.toLowerCase();
+            for (let word of forbidden) if (lower.includes(word)) return showToast(`Query blocked: "${word.toUpperCase()}" is not allowed in read-only mode.`, 'error');
+            if (!lower.startsWith('select')) return showToast('Only SELECT queries are permitted.', 'warning');
             
-            // Client-side safety block 
-            const forbidden = ['insert', 'update', 'delete', 'drop', 'alter', 'create', 'truncate', 'grant', 'exec', 'execute'];
-            const lower = rawQuery.toLowerCase();
-            
-            for (let word of forbidden) {
-                if (lower.includes(word)) {
-                    showToast(`Query blocked: "${word.toUpperCase()}" is not allowed in read-only mode.`, 'error');
-                    return;
-                }
-            }
-            
-            if (!lower.startsWith('select')) {
-                showToast('Only SELECT queries are permitted.', 'warning');
-                return;
-            }
-            
-            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> EXECUTING...`;
-            btn.disabled = true;
-            
+            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> EXECUTING...`; btn.disabled = true;
             const startTime = performance.now();
+            const tableMatch = rawQuery.match(/from\s+([a-zA-Z_][a-zA-Z0-9_]*)/i); const tableName = tableMatch ? tableMatch[1] : null;
+            if (!tableName) { showToast('Could not parse table name from query.', 'error'); btn.innerHTML = `<i class="fa-solid fa-play"></i> RUN QUERY`; btn.disabled = false; return; }
             
-            // Parse table name
-            const tableMatch = rawQuery.match(/from\s+([a-zA-Z_][a-zA-Z0-9_]*)/i);
-            const tableName = tableMatch ? tableMatch[1] : null;
-            
-            if (!tableName) {
-                showToast('Could not parse table name from query.', 'error');
-                btn.innerHTML = `<i class="fa-solid fa-play"></i> RUN QUERY`;
-                btn.disabled = false;
-                return;
-            }
-            
-            // Execute via Supabase SDK
             _supabase.from(tableName).select('*').limit(100).then(({ data, error }) => {
-                const elapsed = Math.round(performance.now() - startTime);
-                btn.innerHTML = `<i class="fa-solid fa-play"></i> RUN QUERY`;
-                btn.disabled = false;
-                
-                if (error) {
-                    showToast('Query error: ' + error.message, 'error');
-                    return;
-                }
-                
+                const elapsed = Math.round(performance.now() - startTime); btn.innerHTML = `<i class="fa-solid fa-play"></i> RUN QUERY`; btn.disabled = false;
+                if (error) return showToast('Query error: ' + error.message, 'error');
                 renderQueryResults(data, elapsed);
             });
         }
 
         function renderQueryResults(data, elapsedMs) {
-            const container = document.getElementById('queryResultsContainer');
-            const thead = document.getElementById('queryResultHead');
-            const tbody = document.getElementById('queryResultBody');
-            const meta = document.getElementById('queryMeta');
-            
+            const container = document.getElementById('queryResultsContainer'); const thead = document.getElementById('queryResultHead'); const tbody = document.getElementById('queryResultBody'); const meta = document.getElementById('queryMeta');
             container.classList.remove('hidden');
+            if (!data || data.length === 0) { thead.innerHTML = ''; tbody.innerHTML = `<tr><td class="p-10 text-center text-slate-500">Query returned zero rows.</td></tr>`; meta.innerText = `0 rows • ${elapsedMs}ms`; return; }
             
-            if (!data || data.length === 0) {
-                thead.innerHTML = '';
-                tbody.innerHTML = `<tr><td class="p-10 text-center text-slate-500">Query returned zero rows.</td></tr>`;
-                meta.innerText = `0 rows • ${elapsedMs}ms`;
-                return;
-            }
-            
-            // Build headers
-            const keys = Object.keys(data[0]);
-            thead.innerHTML = `<tr>${keys.map(k => `<th class="p-4">${k}</th>`).join('')}</tr>`;
-            
-            // Build rows
+            const keys = Object.keys(data[0]); thead.innerHTML = `<tr>${keys.map(k => `<th class="p-4">${k}</th>`).join('')}</tr>`;
             tbody.innerHTML = data.map(row => {
                 return `<tr class="hover:bg-slate-800/30">${keys.map(k => {
-                    let val = row[k];
-                    if (val === null) val = '<span class="text-slate-600 italic">null</span>';
-                    else if (typeof val === 'object') val = `<span class="text-[10px] font-mono text-sky-400 break-all">${JSON.stringify(val).substring(0, 80)}</span>`;
-                    else val = String(val);
+                    let val = row[k]; if (val === null) val = '<span class="text-slate-600 italic">null</span>'; else if (typeof val === 'object') val = `<span class="text-[10px] font-mono text-sky-400 break-all">${JSON.stringify(val).substring(0, 80)}</span>`; else val = String(val);
                     return `<td class="p-4 text-xs border-b border-slate-800/50">${val}</td>`;
                 }).join('')}</tr>`;
             }).join('');
-            
-            meta.innerText = `${data.length} rows • ${elapsedMs}ms`;
-            showToast(`Query executed in ${elapsedMs}ms`, 'success');
+            meta.innerText = `${data.length} rows • ${elapsedMs}ms`; showToast(`Query executed in ${elapsedMs}ms`, 'success');
         }
 
         // =========================================
@@ -2087,83 +1766,32 @@
         async function fetchRealStaff() {
             document.getElementById('staffTableBody').innerHTML = getTableSkeleton(4);
             const { data, error } = await _supabase.from('staff_users').select('*');
-            
             const tbody = document.getElementById('staffTableBody'); 
-            
-            if (error || !data || data.length === 0) { 
-                tbody.innerHTML = `<tr><td colspan="4" class="p-10 text-center text-slate-500">No staff found.</td></tr>`; 
-                return; 
-            }
-            
+            if (error || !data || data.length === 0) { tbody.innerHTML = `<tr><td colspan="4" class="p-10 text-center text-slate-500">No staff found.</td></tr>`; return; }
             tbody.innerHTML = '';
-            
             data.forEach(s => {
-                let badgeColor = 'text-slate-400 border-slate-500/20 bg-slate-500/10'; 
-                if(s.role === 'CEO') badgeColor = 'text-yellow-500 border-yellow-500/20 bg-yellow-500/10'; 
-                if(s.role === 'Admin') badgeColor = 'text-blue-400 border-blue-500/20 bg-blue-500/10'; 
-                if(s.role === 'Growth') badgeColor = 'text-purple-400 border-purple-500/20 bg-purple-500/10'; 
-                if(s.role === 'Infra') badgeColor = 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10';
-                
-                let actionHTML = ''; 
-                if(currentUserRole === 'CEO' || (s.role !== 'CEO' && currentUserRole !== 'Investor')) { 
-                    actionHTML = `<button onclick="revokeRealStaff('${s.id}')" class="action-btn text-red-400 hover:text-white bg-red-500/10 hover:bg-red-500 border border-red-500/30 px-3 py-1.5 rounded text-[10px] uppercase font-bold transition-colors">Revoke</button>`; 
-                }
-                
-                tbody.innerHTML += `
-                    <tr class="hover:bg-slate-800/30 border-b border-slate-800/50">
-                        <td class="p-4"><div class="font-medium text-white">${s.email}</div></td>
-                        <td class="p-4"><span class="${badgeColor} border text-[9px] px-2 py-1 rounded tracking-widest uppercase">${s.role}</span></td>
-                        <td class="p-4 text-center"><span class="text-[10px] text-slate-400">${s.status || 'Active'}</span></td>
-                        <td class="p-4 text-right">${actionHTML}</td>
-                    </tr>
-                `;
+                let badgeColor = 'text-slate-400 border-slate-500/20 bg-slate-500/10'; if(s.role === 'CEO') badgeColor = 'text-yellow-500 border-yellow-500/20 bg-yellow-500/10'; if(s.role === 'Admin') badgeColor = 'text-blue-400 border-blue-500/20 bg-blue-500/10'; if(s.role === 'Growth') badgeColor = 'text-purple-400 border-purple-500/20 bg-purple-500/10'; if(s.role === 'Infra') badgeColor = 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10';
+                let actionHTML = ''; if(currentUserRole === 'CEO' || (s.role !== 'CEO' && currentUserRole !== 'Investor')) { actionHTML = `<button onclick="revokeRealStaff('${s.id}')" class="action-btn text-red-400 hover:text-white bg-red-500/10 hover:bg-red-500 border border-red-500/30 px-3 py-1.5 rounded text-[10px] uppercase font-bold transition-colors">Revoke</button>`; }
+                tbody.innerHTML += `<tr class="hover:bg-slate-800/30 border-b border-slate-800/50"><td class="p-4"><div class="font-medium text-white">${s.email}</div></td><td class="p-4"><span class="${badgeColor} border text-[9px] px-2 py-1 rounded tracking-widest uppercase">${s.role}</span></td><td class="p-4 text-center"><span class="text-[10px] text-slate-400">${s.status || 'Active'}</span></td><td class="p-4 text-right">${actionHTML}</td></tr>`;
             });
         }
         
         async function inviteRealStaff() {
-            const email = document.getElementById('inviteStaffEmail').value; 
-            const role = document.getElementById('inviteStaffRole').value; 
-            
+            const email = document.getElementById('inviteStaffEmail').value; const role = document.getElementById('inviteStaffRole').value; 
             if(!email) return showToast("Email required.", 'warning');
-            
-            const btn = document.getElementById('btnInviteStaff'); 
-            btn.innerText = "ADDING..."; 
-            btn.disabled = true;
-            
-            const tempPassword = "MailvahOperative2026!"; 
-            const { data: authData, error: authError } = await _supabase.auth.signUp({ email: email, password: tempPassword });
-            
-            if (authError) { 
-                showToast(authError.message, 'error'); 
-                btn.disabled = false; 
-                btn.innerText = "ADD OPERATIVE"; 
-                return; 
-            }
-            
+            const btn = document.getElementById('btnInviteStaff'); btn.innerText = "ADDING..."; btn.disabled = true;
+            const tempPassword = "MailvahOperative2026!"; const { data: authData, error: authError } = await _supabase.auth.signUp({ email: email, password: tempPassword });
+            if (authError) { showToast(authError.message, 'error'); btn.disabled = false; btn.innerText = "ADD OPERATIVE"; return; }
             const { error: dbError } = await _supabase.from('staff_users').insert([{ id: authData.user.id, email: email, role: role, status: 'Active' }]);
-            btn.disabled = false; 
-            btn.innerText = "ADD OPERATIVE";
-            
-            if (dbError) {
-                showToast(dbError.message, 'error'); 
-            } else { 
-                await logAudit('Staff Invite', 'staff', email, { role: role });
-                showToast(`Operative Added! Email: ${email} Temp Pass: ${tempPassword}`, 'success'); 
-                document.getElementById('inviteStaffEmail').value = ''; 
-                fetchRealStaff(); 
-            }
+            btn.disabled = false; btn.innerText = "ADD OPERATIVE";
+            if (dbError) { showToast(dbError.message, 'error'); } else { await logAudit('Staff Invite', 'staff', email, { role: role }); showToast(`Operative Added! Email: ${email} Temp Pass: ${tempPassword}`, 'success'); document.getElementById('inviteStaffEmail').value = ''; fetchRealStaff(); }
         }
         
         async function revokeRealStaff(id) { 
             if(currentUserRole === 'Investor') return; 
             if(confirm("Permanently revoke access for this operative?")) {
                 const { error } = await _supabase.from('staff_users').delete().eq('id', id); 
-                if(!error) {
-                    await logAudit('Staff Revoke', 'staff', id, { revoked_by: currentUserRole });
-                    showToast('Staff revoked successfully.', 'success');
-                } else {
-                    showToast(error.message, 'error');
-                }
+                if(!error) { await logAudit('Staff Revoke', 'staff', id, { revoked_by: currentUserRole }); showToast('Staff revoked successfully.', 'success'); } else showToast(error.message, 'error');
             }
         }
 
@@ -2172,145 +1800,59 @@
         // =========================================
         async function fetchSupportTickets() {
             document.getElementById('supportTableBody').innerHTML = getTableSkeleton(4);
-            const { data, error } = await _supabase.from('support_tickets').select('*');
-            
-            const tbody = document.getElementById('supportTableBody'); 
-            
-            if (error || !data || data.length === 0) { 
-                tbody.innerHTML = `<tr><td colspan="4" class="p-10 text-center text-slate-500">No open tickets.</td></tr>`; 
-                return; 
-            }
-            
+            const { data, error } = await _supabase.from('support_tickets').select('*'); const tbody = document.getElementById('supportTableBody'); 
+            if (error || !data || data.length === 0) { tbody.innerHTML = `<tr><td colspan="4" class="p-10 text-center text-slate-500">No open tickets.</td></tr>`; return; }
             tbody.innerHTML = '';
             data.forEach(t => {
                 let actionHTML = ''; 
                 if(currentUserRole !== 'Investor') {
-                    // Include Mark Resolved
-                    actionHTML = `<button onclick="closeRealTicket('${t.id}')" class="action-btn bg-slate-800 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-slate-700 transition-colors">Mark Resolved</button>`;
-                    
-                    // Smart Credit Suggestions Form
-                    actionHTML += `
-                        <div class="mt-2 flex gap-2 items-center justify-end">
-                            <select id="comp-${t.id}" class="text-[10px] bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white outline-none" onchange="handleCompensateChange('${t.id}')">
-                                <option value="">Compensate...</option>
-                                <option value="500">Apology 500</option>
-                                <option value="2000">Apology 2000</option>
-                                <option value="5000">Apology 5000</option>
-                                <option value="custom">Custom</option>
-                            </select>
-                            <input type="number" id="comp-custom-${t.id}" class="hidden w-16 text-[10px] bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white outline-none" placeholder="Amt">
-                            <button id="comp-btn-${t.id}" onclick="executeCompensate('${t.user_id || t.user_email}', '${t.id}')" class="text-[10px] bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 rounded px-2 py-1 hover:bg-emerald-600 hover:text-white transition-colors">Send</button>
-                        </div>
-                    `;
+                    actionHTML = `<button onclick="closeRealTicket('${t.id}')" class="action-btn bg-slate-800 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-slate-700 transition-colors">Mark Resolved</button>
+                        <div class="mt-2 flex gap-2 items-center justify-end"><select id="comp-${t.id}" class="text-[10px] bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white outline-none" onchange="handleCompensateChange('${t.id}')"><option value="">Compensate...</option><option value="500">Apology 500</option><option value="2000">Apology 2000</option><option value="5000">Apology 5000</option><option value="custom">Custom</option></select><input type="number" id="comp-custom-${t.id}" class="hidden w-16 text-[10px] bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white outline-none" placeholder="Amt"><button id="comp-btn-${t.id}" onclick="executeCompensate('${t.user_id || t.user_email}', '${t.id}')" class="text-[10px] bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 rounded px-2 py-1 hover:bg-emerald-600 hover:text-white transition-colors">Send</button></div>`;
                 }
-                
-                tbody.innerHTML += `
-                    <tr id="ticket-row-${t.id}" class="hover:bg-slate-800/30 border-b border-slate-800/50 transition-colors duration-300">
-                        <td class="p-4"><div class="font-bold text-white">${t.user_email}</div></td>
-                        <td class="p-4"><div class="font-medium text-amber-400">${t.issue}</div></td>
-                        <td class="p-4 text-center"><span class="bg-red-500/10 text-red-400 border border-red-500/20 text-[9px] px-2 py-1 rounded uppercase tracking-widest font-bold">${t.status}</span></td>
-                        <td class="p-4 text-right">${actionHTML}</td>
-                    </tr>
-                `;
+                tbody.innerHTML += `<tr id="ticket-row-${t.id}" class="hover:bg-slate-800/30 border-b border-slate-800/50 transition-colors duration-300"><td class="p-4"><div class="font-bold text-white">${t.user_email}</div></td><td class="p-4"><div class="font-medium text-amber-400">${t.issue}</div></td><td class="p-4 text-center"><span class="bg-red-500/10 text-red-400 border border-red-500/20 text-[9px] px-2 py-1 rounded uppercase tracking-widest font-bold">${t.status}</span></td><td class="p-4 text-right">${actionHTML}</td></tr>`;
             });
         }
         
         async function closeRealTicket(id) { 
             const { error } = await _supabase.from('support_tickets').update({ status: 'Resolved' }).eq('id', id); 
-            if(!error) {
-                await logAudit('Ticket Resolved', 'ticket', id, { resolved_by: currentUserRole });
-                showToast('Ticket marked resolved.', 'success');
-            } else {
-                showToast(error.message, 'error');
-            }
+            if(!error) { await logAudit('Ticket Resolved', 'ticket', id, { resolved_by: currentUserRole }); showToast('Ticket marked resolved.', 'success'); } else showToast(error.message, 'error');
         }
 
         function handleCompensateChange(ticketId) {
-            const selectEl = document.getElementById(`comp-${ticketId}`);
-            const customInput = document.getElementById(`comp-custom-${ticketId}`);
-            if (selectEl.value === 'custom') {
-                customInput.classList.remove('hidden');
-            } else {
-                customInput.classList.add('hidden');
-            }
+            const selectEl = document.getElementById(`comp-${ticketId}`); const customInput = document.getElementById(`comp-custom-${ticketId}`);
+            if (selectEl.value === 'custom') customInput.classList.remove('hidden'); else customInput.classList.add('hidden');
         }
 
         async function executeCompensate(userIdentifier, ticketId) {
-            const selectEl = document.getElementById(`comp-${ticketId}`);
-            let amount = selectEl.value;
-            if (amount === 'custom') {
-                amount = document.getElementById(`comp-custom-${ticketId}`).value;
-            }
-            amount = parseInt(amount);
+            const selectEl = document.getElementById(`comp-${ticketId}`); let amount = selectEl.value;
+            if (amount === 'custom') amount = document.getElementById(`comp-custom-${ticketId}`).value; amount = parseInt(amount);
             if (!amount || isNaN(amount) || amount <= 0) return showToast('Please enter a valid amount', 'warning');
-
-            const btn = document.getElementById(`comp-btn-${ticketId}`);
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-
+            const btn = document.getElementById(`comp-btn-${ticketId}`); btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
             try {
                 let targetUser = loadedUsers.find(u => u.id === userIdentifier || u.email === userIdentifier);
                 if (!targetUser) {
                     const { data: uData } = await _supabase.from('user_credits').select('*').eq('id', userIdentifier).single();
-                    if(uData) targetUser = uData;
-                    else throw new Error('User vault not found');
+                    if(uData) targetUser = uData; else throw new Error('User vault not found');
                 }
-
                 const newWash = (targetUser.integrity_vault || 0) + amount;
-
                 const { error: updateErr } = await _supabase.from('user_credits').update({ integrity_vault: newWash }).eq('id', targetUser.id);
                 if (updateErr) throw updateErr;
 
-                await _supabase.from('user_activity').insert({
-                    user_id: targetUser.id,
-                    activity_type: 'compensation',
-                    description: `Compensated ${amount} credits via support desk`,
-                    metadata: { ticket_id: ticketId, amount: amount }
-                });
-
+                await _supabase.from('user_activity').insert({ user_id: targetUser.id, activity_type: 'compensation', description: `Compensated ${amount} credits via support desk`, metadata: { ticket_id: ticketId, amount: amount } });
                 await logAudit('Credit Override', 'user', targetUser.id, { reason: "Support Compensation", ticket_id: ticketId, amount_added: amount });
 
                 const row = document.getElementById(`ticket-row-${ticketId}`);
-                if (row) {
-                    row.classList.add('bg-emerald-500/10');
-                    setTimeout(() => row.classList.remove('bg-emerald-500/10'), 1000);
-                }
-
+                if (row) { row.classList.add('bg-emerald-500/10'); setTimeout(() => row.classList.remove('bg-emerald-500/10'), 1000); }
                 showToast(`Compensated ${amount} credits to ${targetUser.id}`, 'success');
-                
-                selectEl.value = '';
-                const customInput = document.getElementById(`comp-custom-${ticketId}`);
-                if (customInput) {
-                    customInput.value = '';
-                    customInput.classList.add('hidden');
-                }
-                btn.innerHTML = 'Send';
-                btn.disabled = false;
-
-                fetchRealUsers(); 
-            } catch (err) {
-                btn.innerHTML = 'Send';
-                btn.disabled = false;
-                showToast(err.message, 'error');
-            }
+                selectEl.value = ''; const customInput = document.getElementById(`comp-custom-${ticketId}`); if (customInput) { customInput.value = ''; customInput.classList.add('hidden'); }
+                btn.innerHTML = 'Send'; btn.disabled = false; fetchRealUsers(); 
+            } catch (err) { btn.innerHTML = 'Send'; btn.disabled = false; showToast(err.message, 'error'); }
         }
-        
+
         async function pushRealBroadcast() { 
-            const msgText = document.getElementById('broadcastMessage').value;
-            const bType = document.getElementById('broadcastType').value;
-            const { error } = await _supabase.from('system_broadcasts').insert([{ 
-                message: msgText, 
-                type: bType, 
-                created_at: new Date() 
-            }]); 
-            
-            if(!error) {
-                await logAudit('Broadcast', 'system', 'global', { message: msgText, type: bType });
-                document.getElementById('broadcastMessage').value = ''; 
-                showToast('Broadcast Sent!', 'success'); 
-            } else {
-                showToast(error.message, 'error');
-            }
+            const msgText = document.getElementById('broadcastMessage').value; const bType = document.getElementById('broadcastType').value;
+            const { error } = await _supabase.from('system_broadcasts').insert([{ message: msgText, type: bType, created_at: new Date() }]); 
+            if(!error) { await logAudit('Broadcast', 'system', 'global', { message: msgText, type: bType }); document.getElementById('broadcastMessage').value = ''; showToast('Broadcast Sent!', 'success'); } else showToast(error.message, 'error');
         }
 
         // =========================================
@@ -2320,76 +1862,32 @@
             document.getElementById('auditTableBody').innerHTML = getTableSkeleton(6);
             const { data, error } = await _supabase.from('audit_logs').select('*').order('created_at', { ascending: false }).limit(100);
             if (error) return showToast(error.message, 'error');
-            allAuditLogs = data || [];
-            renderAuditLogs();
+            allAuditLogs = data || []; renderAuditLogs();
         }
 
         function renderAuditLogs() {
-            const tbody = document.getElementById('auditTableBody');
-            tbody.innerHTML = '';
-            
-            const searchQ = document.getElementById('auditSearchInput').value.toLowerCase();
-            let roleFilter = document.getElementById('auditRoleFilter').value;
-            const actionFilter = document.getElementById('auditActionFilter').value;
-
-            if (currentUserRole === 'Growth' || currentUserRole === 'Infra') {
-                roleFilter = currentUserRole;
-            }
+            const tbody = document.getElementById('auditTableBody'); tbody.innerHTML = '';
+            const searchQ = document.getElementById('auditSearchInput').value.toLowerCase(); let roleFilter = document.getElementById('auditRoleFilter').value; const actionFilter = document.getElementById('auditActionFilter').value;
+            if (currentUserRole === 'Growth' || currentUserRole === 'Infra') roleFilter = currentUserRole;
 
             const filteredLogs = allAuditLogs.filter(log => {
                 if(searchQ && !log.actor_email.toLowerCase().includes(searchQ) && !log.action.toLowerCase().includes(searchQ)) return false;
                 if(roleFilter !== 'All' && log.actor_role !== roleFilter) return false;
                 if(actionFilter !== 'All' && log.action !== actionFilter) return false;
-                
                 if ((currentUserRole === 'Growth' || currentUserRole === 'Infra') && log.actor_email !== currentUserEmail) return false;
-                
                 return true;
             });
 
-            if(filteredLogs.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="p-10 text-center text-slate-500">No audit logs match your filters.</td></tr>';
-                return;
-            }
-
+            if(filteredLogs.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="p-10 text-center text-slate-500">No audit logs match your filters.</td></tr>'; return; }
             filteredLogs.forEach(log => {
-                const d = new Date(log.created_at);
-                const timeStr = `${d.toLocaleDateString()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
-                
-                let badgeColor = 'text-slate-400 bg-slate-800 border-slate-700'; 
-                if(log.actor_role === 'CEO') badgeColor = 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20'; 
-                if(log.actor_role === 'Admin') badgeColor = 'text-blue-400 bg-blue-500/10 border-blue-500/20'; 
-                if(log.actor_role === 'Growth') badgeColor = 'text-purple-400 bg-purple-500/10 border-purple-500/20'; 
-                if(log.actor_role === 'Infra') badgeColor = 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
-
-                let actionBorder = 'border-l-slate-500';
-                if(log.action === 'Credit Override') actionBorder = 'border-l-sky-500';
-                if(log.action === 'Staff Invite') actionBorder = 'border-l-purple-500';
-                if(log.action === 'Staff Revoke') actionBorder = 'border-l-red-500';
-                if(log.action === 'Plan Change') actionBorder = 'border-l-amber-500';
-                if(log.action === 'Broadcast') actionBorder = 'border-l-pink-500';
-                if(log.action === 'Ticket Resolved') actionBorder = 'border-l-emerald-500';
-
-                tbody.innerHTML += `
-                    <tr class="hover:bg-slate-800/30 border-b border-slate-800/50">
-                        <td class="p-4 font-mono text-[10px] text-slate-400">${timeStr}</td>
-                        <td class="p-4 font-medium text-white">${log.actor_email}</td>
-                        <td class="p-4"><span class="${badgeColor} border text-[9px] px-2 py-1 rounded tracking-widest uppercase font-bold">${log.actor_role}</span></td>
-                        <td class="p-4"><span class="border-l-2 pl-2 ${actionBorder} text-slate-300 text-xs">${log.action}</span></td>
-                        <td class="p-4 font-mono text-[10px] text-slate-500 break-all">${log.target_id || '-'}</td>
-                        <td class="p-4">
-                            <details class="text-[10px] group cursor-pointer outline-none">
-                                <summary class="text-sky-400 hover:text-sky-300 outline-none">View Details</summary>
-                                <pre class="mt-2 bg-slate-950 p-2 rounded text-slate-400 overflow-x-auto whitespace-pre-wrap">${JSON.stringify(log.details, null, 2)}</pre>
-                            </details>
-                        </td>
-                    </tr>
-                `;
+                const d = new Date(log.created_at); const timeStr = `${d.toLocaleDateString()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+                let badgeColor = 'text-slate-400 bg-slate-800 border-slate-700'; if(log.actor_role === 'CEO') badgeColor = 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20'; if(log.actor_role === 'Admin') badgeColor = 'text-blue-400 bg-blue-500/10 border-blue-500/20'; if(log.actor_role === 'Growth') badgeColor = 'text-purple-400 bg-purple-500/10 border-purple-500/20'; if(log.actor_role === 'Infra') badgeColor = 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
+                let actionBorder = 'border-l-slate-500'; if(log.action === 'Credit Override') actionBorder = 'border-l-sky-500'; if(log.action === 'Staff Invite') actionBorder = 'border-l-purple-500'; if(log.action === 'Staff Revoke') actionBorder = 'border-l-red-500'; if(log.action === 'Plan Change') actionBorder = 'border-l-amber-500'; if(log.action === 'Broadcast') actionBorder = 'border-l-pink-500'; if(log.action === 'Ticket Resolved') actionBorder = 'border-l-emerald-500';
+                tbody.innerHTML += `<tr class="hover:bg-slate-800/30 border-b border-slate-800/50"><td class="p-4 font-mono text-[10px] text-slate-400">${timeStr}</td><td class="p-4 font-medium text-white">${log.actor_email}</td><td class="p-4"><span class="${badgeColor} border text-[9px] px-2 py-1 rounded tracking-widest uppercase font-bold">${log.actor_role}</span></td><td class="p-4"><span class="border-l-2 pl-2 ${actionBorder} text-slate-300 text-xs">${log.action}</span></td><td class="p-4 font-mono text-[10px] text-slate-500 break-all">${log.target_id || '-'}</td><td class="p-4"><details class="text-[10px] group cursor-pointer outline-none"><summary class="text-sky-400 hover:text-sky-300 outline-none">View Details</summary><pre class="mt-2 bg-slate-950 p-2 rounded text-slate-400 overflow-x-auto whitespace-pre-wrap">${JSON.stringify(log.details, null, 2)}</pre></details></td></tr>`;
             });
         }
 
-        function filterAuditLogs() {
-            renderAuditLogs();
-        }
+        function filterAuditLogs() { renderAuditLogs(); }
 
         // =========================================
         // REALTIME SUBSCRIPTIONS
@@ -2399,27 +1897,11 @@
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'user_credits' }, () => { fetchRealUsers(); })
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'staff_users' }, () => { fetchRealStaff(); })
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'support_tickets' }, () => { fetchSupportTickets(); })
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'audit_logs' }, () => { 
-                    const auditTab = document.getElementById('view-audit');
-                    if(auditTab && !auditTab.classList.contains('hidden')) fetchAuditLogs(); 
-                })
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'user_activity' }, () => { 
-                    const timelineModal = document.getElementById('userTimelineModal');
-                    if(timelineModal && !timelineModal.classList.contains('hidden')) {
-                        openUserTimeline(document.getElementById('timelineUserId').innerText);
-                    }
-                })
-                .subscribe((status) => { 
-                    if(status === 'SUBSCRIBED') { 
-                        document.getElementById('realtimeStatus').innerText = 'Supabase Sync: ACTIVE'; 
-                        document.getElementById('realtimeStatus').classList.replace('text-sky-400', 'text-emerald-400'); 
-                    } 
-                });
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'audit_logs' }, () => { const auditTab = document.getElementById('view-audit'); if(auditTab && !auditTab.classList.contains('hidden')) fetchAuditLogs(); })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'user_activity' }, () => { const timelineModal = document.getElementById('userTimelineModal'); if(timelineModal && !timelineModal.classList.contains('hidden')) openUserTimeline(document.getElementById('timelineUserId').innerText); })
+                .subscribe((status) => { if(status === 'SUBSCRIBED') { document.getElementById('realtimeStatus').innerText = 'Supabase Sync: ACTIVE'; document.getElementById('realtimeStatus').classList.replace('text-sky-400', 'text-emerald-400'); } });
 
-            // Start Anomaly Auto-Scan
-            if(!anomalyScanInterval) {
-                anomalyScanInterval = setInterval(detectAnomalies, 30000);
-            }
+            if(!anomalyScanInterval) anomalyScanInterval = setInterval(detectAnomalies, 30000);
         }
 
         // =========================================
@@ -2427,23 +1909,13 @@
         // =========================================
         _supabase.auth.getSession().then(async ({ data: { session } }) => {
             if (session) { 
-                let resolvedRole = 'Admin'; 
-                const { data: staffData } = await _supabase.from('staff_users').select('role').eq('email', session.user.email).single();
-                
-                if (staffData && staffData.role) {
-                    resolvedRole = staffData.role; 
-                } else if (session.user.email.includes('founder') || session.user.email === 'admin@mailvah.com' || session.user.email === 'ceo@mailvah.com') {
-                    resolvedRole = 'CEO';
-                }
+                let resolvedRole = 'Admin'; const { data: staffData } = await _supabase.from('staff_users').select('role').eq('email', session.user.email).single();
+                if (staffData && staffData.role) resolvedRole = staffData.role; else if (session.user.email.includes('founder') || session.user.email === 'admin@mailvah.com' || session.user.email === 'ceo@mailvah.com') resolvedRole = 'CEO';
                 
                 currentUserEmail = session.user.email;
-                enforceRBAC(resolvedRole); 
-                document.getElementById('adminAuthContainer').classList.add('hidden'); 
-                document.getElementById('staffIdentityDisplay').innerText = `${resolvedRole}: ${session.user.email}`; 
+                enforceRBAC(resolvedRole); document.getElementById('adminAuthContainer').classList.add('hidden'); document.getElementById('staffIdentityDisplay').innerText = `${resolvedRole}: ${session.user.email}`; 
                 
-                fetchAllData(); 
-                initRealtimeSubscriptions(); 
-                switchTab('overlord'); 
+                fetchAllData(); initRealtimeSubscriptions(); switchTab('overlord'); 
             }
         });
     </script>
