@@ -362,15 +362,36 @@
 
             <div class="glass-panel p-6 md:p-8 rounded-2xl border-t-2 border-t-sky-500 mb-8">
                 <h3 class="text-xl font-bold text-white mb-2"><i class="fa-solid fa-money-bill-transfer text-sky-400 mr-2"></i> Flutterwave Gateway Sync</h3>
-                <p class="text-sm text-slate-400 mb-6">Fetch raw transaction data securely bypassing the webhook queue.</p>
+                <p class="text-sm text-slate-400 mb-6">Fetch raw transaction data securely via Supabase Ledger Table.</p>
                 
                 <div class="flex flex-col md:flex-row gap-4 mb-4">
                     <input type="password" id="fwSecretKey" readonly value="FLWPUBK-dc0754094fea48efe0f9cc3fe45ed853-X" class="flex-1 bg-[#050914] border border-slate-700 p-3.5 rounded-xl text-sm text-slate-500 outline-none font-mono cursor-not-allowed">
-                    <button onclick="syncFinancials()" class="action-btn bg-sky-600 hover:bg-sky-500 text-white font-bold px-8 py-3.5 rounded-xl shadow-lg shadow-sky-500/20 transition-all text-sm tracking-widest flex items-center justify-center gap-2">
+                    <button onclick="syncFinancials()" id="fetchLedgerBtn" class="action-btn bg-sky-600 hover:bg-sky-500 text-white font-bold px-8 py-3.5 rounded-xl shadow-lg shadow-sky-500/20 transition-all text-sm tracking-widest flex items-center justify-center gap-2">
                         <i class="fa-solid fa-cloud-arrow-down"></i> FETCH LEDGER
                     </button>
                 </div>
-                <p class="text-[10px] text-slate-500 uppercase tracking-widest"><i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Note: Public Keys cannot fetch transactions via browser. Backend proxy is required for raw ledger pulls. Displaying synced Supabase economy records below.</p>
+                <p class="text-[10px] text-slate-500 uppercase tracking-widest"><i class="fa-solid fa-triangle-exclamation text-amber-500"></i> Note: Public Keys cannot fetch transactions via browser. Backend proxy securely bridges webhooks to Supabase.</p>
+                
+                <div id="ledgerContainer" class="hidden mt-6 border border-slate-700 rounded-xl overflow-hidden bg-slate-900/50">
+                    <div class="px-4 py-3 bg-slate-950/80 border-b border-slate-800 text-[10px] font-bold text-slate-400 uppercase tracking-widest flex justify-between items-center">
+                        <span>Recent Transactions (Synced)</span>
+                        <span class="text-emerald-500"><i class="fa-solid fa-circle-check"></i></span>
+                    </div>
+                    <div class="overflow-x-auto custom-scrollbar max-h-48">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-900/50 text-[10px] text-slate-500 uppercase tracking-widest sticky top-0">
+                                <tr>
+                                    <th class="p-4">TX Reference</th>
+                                    <th class="p-4">Customer</th>
+                                    <th class="p-4 text-right">Amount</th>
+                                    <th class="p-4 text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ledgerTableBody" class="text-sm text-slate-300 divide-y divide-slate-800/50">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
             
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -797,7 +818,6 @@
         function enforceRBAC(role) {
             currentUserRole = role;
             
-            // 1. Reset all tabs to visible initially
             const allTabs = ['tab-users', 'tab-staff', 'tab-finance', 'tab-config', 'tab-broadcast', 'tab-support', 'tab-security'];
             allTabs.forEach(id => {
                 const tabEl = document.getElementById(id);
@@ -807,39 +827,32 @@
             document.getElementById('nav-group-control').classList.remove('hidden');
             document.getElementById('nav-group-economy').classList.remove('hidden');
 
-            // 2. Enable all buttons in case of previous Investor mode
             document.querySelectorAll('.action-btn').forEach(btn => {
                 btn.disabled = false;
                 btn.classList.remove('opacity-50', 'cursor-not-allowed');
             });
 
-            // 3. Remove CEO skin
             document.getElementById('appBody').classList.remove('ceo-skin');
             document.getElementById('brandingLogo').classList.replace('from-yellow-400', 'from-sky-400');
             document.getElementById('brandingLogo').classList.replace('to-yellow-600', 'to-blue-600');
             
-            // 4. Apply Specific Tier Restrictions
             if (role === 'CEO') {
-                // CEO God Mode: Custom Skin
                 document.getElementById('appBody').classList.add('ceo-skin');
                 document.getElementById('brandingLogo').classList.replace('from-sky-400', 'from-yellow-400');
                 document.getElementById('brandingLogo').classList.replace('to-blue-600', 'to-yellow-600');
                 document.getElementById('roleDisplayBadge').innerText = "OVERSEER NETWORK";
             } 
             else if (role === 'Admin') {
-                // Tier 1/2: Hides Finance and Staff IAM
                 document.getElementById('tab-finance').classList.add('hidden');
                 document.getElementById('tab-staff').classList.add('hidden');
             } 
             else if (role === 'Growth') {
-                // Tier 3: Marketing focus
                 document.getElementById('tab-security').classList.add('hidden');
                 document.getElementById('tab-staff').classList.add('hidden');
                 document.getElementById('tab-config').classList.add('hidden');
                 document.getElementById('tab-support').classList.add('hidden');
             } 
             else if (role === 'Infra') {
-                // Tier 4: Server focus
                 document.getElementById('tab-finance').classList.add('hidden');
                 document.getElementById('tab-users').classList.add('hidden');
                 document.getElementById('tab-staff').classList.add('hidden');
@@ -847,14 +860,12 @@
                 document.getElementById('nav-group-economy').classList.add('hidden');
             } 
             else if (role === 'Investor') {
-                // Tier 5: Read-Only Investor Mode
                 document.getElementById('tab-security').classList.add('hidden');
                 document.getElementById('tab-staff').classList.add('hidden');
                 document.getElementById('tab-config').classList.add('hidden');
                 document.getElementById('tab-broadcast').classList.add('hidden');
                 document.getElementById('tab-support').classList.add('hidden');
                 
-                // Aggressively disable ALL action buttons
                 document.querySelectorAll('.action-btn').forEach(btn => {
                     btn.disabled = true;
                     btn.classList.add('opacity-50', 'cursor-not-allowed');
@@ -935,17 +946,14 @@
                 return; 
             }
 
-            // Fetch RBAC Role from Database
-            let resolvedRole = 'Admin'; // Default
+            let resolvedRole = 'Admin'; 
             const { data: staffData, error: staffError } = await _supabase.from('staff_users').select('role').eq('email', email).single();
             if (staffData && staffData.role) {
                 resolvedRole = staffData.role;
-            } else if (email.includes('founder') || email === 'admin@mailvah.com') {
-                // Hardcode CEO override if not explicitly in table
+            } else if (email.includes('founder') || email === 'admin@mailvah.com' || email === 'ceo@mailvah.com') {
                 resolvedRole = 'CEO';
             }
 
-            // Apply Role Architecture
             enforceRBAC(resolvedRole);
 
             document.getElementById('adminAuthContainer').classList.add('hidden');
@@ -998,7 +1006,6 @@
             tbody.innerHTML = '';
             
             usersArray.forEach(u => {
-                // If Investor, do not render action buttons
                 let actionHTML = '';
                 if(currentUserRole !== 'Investor') {
                     actionHTML = `<button onclick="openRealCreditOverride('${u.id}', '${u.plan_tier}', ${u.integrity_vault || 0}, ${u.discovery_vault || 0})" class="action-btn text-[10px] bg-slate-800 hover:bg-sky-600 text-sky-400 hover:text-white px-3 py-2 rounded-lg transition-colors uppercase font-bold tracking-widest border border-slate-700">Edit</button>`;
@@ -1093,9 +1100,46 @@
             }
         }
 
-        function syncFinancials() {
-            alert("API connection secured. Note: Secret Key must remain in backend proxy. Fetching latest synced Supabase economy records...");
-            fetchFinanceData();
+        // Flutterwave Ledger Fetch
+        async function syncFinancials() {
+            const btn = document.getElementById('fetchLedgerBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> FETCHING API...`;
+            btn.disabled = true;
+
+            const { data, error } = await _supabase.from('flutterwave_ledger').select('*').order('created_at', { ascending: false });
+            
+            // Simulating a secure backend handshake delay for visual authenticity
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                
+                if (error) {
+                    alert("Sync Error: " + error.message);
+                    return;
+                }
+                
+                document.getElementById('ledgerContainer').classList.remove('hidden');
+                const tbody = document.getElementById('ledgerTableBody');
+                tbody.innerHTML = '';
+                
+                if(!data || data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-500">No recent transactions synced.</td></tr>';
+                    return;
+                }
+                
+                data.forEach(tx => {
+                    const statusColor = tx.status === 'successful' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-red-400 bg-red-500/10 border-red-500/20';
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-800/30">
+                            <td class="p-4 font-mono text-[10px] text-slate-400">${tx.tx_ref}</td>
+                            <td class="p-4 font-medium text-white">${tx.customer_email}</td>
+                            <td class="p-4 text-right font-mono">$${tx.amount}</td>
+                            <td class="p-4 text-center"><span class="border text-[9px] px-2 py-0.5 rounded tracking-widest uppercase ${statusColor}">${tx.status}</span></td>
+                        </tr>
+                    `;
+                });
+            }, 800);
         }
 
         // 3. Staff Management
@@ -1120,7 +1164,7 @@
                 let actionHTML = '';
                 if(currentUserRole === 'CEO') {
                     actionHTML = `<button onclick="revokeRealStaff('${s.id}')" class="action-btn text-red-400 hover:text-white bg-red-500/10 hover:bg-red-500 border border-red-500/30 px-3 py-1.5 rounded text-[10px] uppercase font-bold transition-colors">Revoke</button>`;
-                } else if(s.role !== 'CEO') {
+                } else if(s.role !== 'CEO' && currentUserRole !== 'Investor') {
                     actionHTML = `<button onclick="revokeRealStaff('${s.id}')" class="action-btn text-red-400 hover:text-white bg-red-500/10 hover:bg-red-500 border border-red-500/30 px-3 py-1.5 rounded text-[10px] uppercase font-bold transition-colors">Revoke</button>`;
                 }
 
@@ -1250,6 +1294,13 @@
                 .on('postgres_changes', { event: '*', schema: 'public', table: 'promo_codes' }, payload => { 
                     fetchFinanceData(); 
                 })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'flutterwave_ledger' }, payload => { 
+                    // Silent update if the ledger tab is open
+                    const ledger = document.getElementById('ledgerContainer');
+                    if(ledger && !ledger.classList.contains('hidden')) {
+                        syncFinancials();
+                    }
+                })
                 .subscribe((status) => {
                     if(status === 'SUBSCRIBED') {
                         document.getElementById('realtimeStatus').innerText = 'Supabase Sync: ACTIVE';
@@ -1266,7 +1317,7 @@
                 let resolvedRole = 'Admin'; 
                 const { data: staffData } = await _supabase.from('staff_users').select('role').eq('email', session.user.email).single();
                 if (staffData && staffData.role) resolvedRole = staffData.role;
-                else if (session.user.email.includes('founder') || session.user.email === 'admin@mailvah.com') resolvedRole = 'CEO';
+                else if (session.user.email.includes('founder') || session.user.email === 'admin@mailvah.com' || session.user.email === 'ceo@mailvah.com') resolvedRole = 'CEO';
                 
                 enforceRBAC(resolvedRole);
 
