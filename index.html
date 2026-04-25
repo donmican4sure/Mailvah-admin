@@ -9,9 +9,13 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/globe.gl"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     
     <style>
+        /* =========================================
+           CORE STYLES & LAYOUT
+        ========================================= */
         body { 
             background-color: #0b1120; 
             color: white; 
@@ -32,14 +36,28 @@
             border-color: rgba(56, 189, 248, 0.3); 
         }
 
-        /* CEO Premium Skin Accent */
+        /* =========================================
+           CEO PREMIUM SKIN OVERRIDES
+        ========================================= */
         .ceo-skin .glass-panel {
             border-top: 2px solid rgba(234, 179, 8, 0.6) !important;
         }
+        
         .ceo-skin .text-sky-400 {
             color: #eab308 !important;
         }
         
+        .ceo-skin .from-sky-400 { 
+            --tw-gradient-from: #facc15 var(--tw-gradient-from-position); 
+        }
+        
+        .ceo-skin .to-blue-600 { 
+            --tw-gradient-to: #ca8a04 var(--tw-gradient-to-position); 
+        }
+        
+        /* =========================================
+           SIDEBAR & NAVIGATION
+        ========================================= */
         .sidebar-item { 
             border-left: 3px solid transparent; 
             transition: all 0.2s ease; 
@@ -57,6 +75,9 @@
             color: #eab308;
         }
         
+        /* =========================================
+           CUSTOM SCROLLBARS
+        ========================================= */
         .custom-scrollbar::-webkit-scrollbar { 
             height: 4px; 
             width: 4px; 
@@ -75,6 +96,9 @@
             display: none !important; 
         }
         
+        /* =========================================
+           TOGGLES & GLOBE VIZ
+        ========================================= */
         .toggle-checkbox:checked { 
             right: 0; 
             border-color: #68D391; 
@@ -113,16 +137,9 @@
             pointer-events: auto; 
         }
         
-        input[type=range]::-webkit-slider-thumb { 
-            appearance: none; 
-            width: 16px; 
-            height: 16px; 
-            border-radius: 50%; 
-            background: #f87171; 
-            cursor: pointer; 
-            border: 2px solid #fff; 
-        }
-        
+        /* =========================================
+           ANIMATIONS & CHARTS
+        ========================================= */
         @keyframes slideInFade { 
             from { opacity: 0; transform: translateY(10px); } 
             to { opacity: 1; transform: translateY(0); } 
@@ -130,6 +147,43 @@
         
         .feed-item { 
             animation: slideInFade 0.2s ease-out forwards; 
+        }
+        
+        @keyframes tickerDrop {
+            from { opacity: 0; transform: translateY(-15px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        
+        .ticker-row { 
+            animation: tickerDrop 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
+        }
+
+        .circular-chart {
+            display: block;
+            margin: 0 auto;
+            max-width: 80%;
+            max-height: 250px;
+        }
+        
+        .circle-bg {
+            fill: none;
+            stroke: #1e293b;
+            stroke-width: 3;
+        }
+        
+        .circle {
+            fill: none;
+            stroke-width: 3;
+            stroke-linecap: round;
+            transition: stroke-dasharray 1.5s ease-out;
+        }
+        
+        .ceo-skin .circle { 
+            stroke: #eab308; 
+        }
+        
+        body:not(.ceo-skin) .circle { 
+            stroke: #38bdf8; 
         }
     </style>
 </head>
@@ -146,12 +200,10 @@
             </div>
             <div class="p-2 bg-slate-900/50">
                 <div class="px-3 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest">Suggested Directives</div>
-                
                 <button onclick="closeCommandPalette(); switchTab('finance')" class="w-full text-left px-4 py-3 hover:bg-slate-800 rounded-lg text-sm text-slate-300 flex items-center justify-between group">
                     <span><i class="fa-solid fa-money-bill-transfer w-5 text-emerald-400 mr-2"></i> Open MRR & Financial Hub</span>
                     <i class="fa-solid fa-arrow-right text-slate-600 group-hover:text-emerald-400"></i>
                 </button>
-                
                 <button onclick="closeCommandPalette(); switchTab('support')" class="w-full text-left px-4 py-3 hover:bg-slate-800 rounded-lg text-sm text-slate-300 flex items-center justify-between group">
                     <span><i class="fa-solid fa-headset w-5 text-sky-400 mr-2"></i> Open Support Desk</span>
                     <i class="fa-solid fa-arrow-right text-slate-600 group-hover:text-sky-400"></i>
@@ -179,11 +231,9 @@
                 <div>
                     <input type="password" id="authPassword" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-4 py-3 text-slate-200 focus:outline-none focus:border-sky-500 text-sm" placeholder="Master Password">
                 </div>
-                
                 <button onclick="handleAdminLogin()" id="loginBtn" class="w-full bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-sky-500/25 tracking-widest text-xs mt-4 flex justify-center items-center gap-2">
                     <i class="fa-solid fa-fingerprint"></i> INITIATE CLEARANCE
                 </button>
-                
                 <p id="authMessage" class="text-center text-xs font-bold mt-4 hidden uppercase tracking-widest"></p>
             </div>
         </div>
@@ -222,32 +272,46 @@
 
         <div class="flex-1 py-4 flex flex-col gap-1 overflow-y-auto custom-scrollbar">
             
-            <div id="nav-group-telemetry" class="px-6 mb-1 mt-2"><span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Telemetry & Security</span></div>
+            <div id="nav-group-telemetry" class="px-6 mb-1 mt-2">
+                <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Telemetry & Security</span>
+            </div>
+            
             <button onclick="switchTab('overlord')" id="tab-overlord" class="sidebar-item active-tab flex items-center justify-start gap-3 px-6 py-2.5 text-slate-400 hover:text-slate-200 transition-all text-sm w-full">
                 <i class="fa-solid fa-globe w-5 text-center text-blue-400"></i><span class="font-medium">Global Pulse Map</span>
             </button>
+            
             <button onclick="switchTab('security')" id="tab-security" class="sidebar-item flex items-center justify-start gap-3 px-6 py-2.5 text-slate-400 hover:text-slate-200 transition-all text-sm w-full">
                 <i class="fa-solid fa-shield-halved w-5 text-center text-red-400"></i><span class="font-medium">API Throttling</span>
             </button>
 
-            <div id="nav-group-control" class="px-6 mt-3 mb-1 border-t border-slate-800/50 pt-3"><span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Operator Control</span></div>
+            <div id="nav-group-control" class="px-6 mt-3 mb-1 border-t border-slate-800/50 pt-3">
+                <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Operator Control</span>
+            </div>
+            
             <button onclick="switchTab('users')" id="tab-users" class="sidebar-item flex items-center justify-start gap-3 px-6 py-2.5 text-slate-400 hover:text-slate-200 transition-all text-sm w-full">
                 <i class="fa-solid fa-users w-5 text-center text-sky-400"></i><span class="font-medium">Client Vaults</span>
             </button>
+            
             <button onclick="switchTab('support')" id="tab-support" class="sidebar-item flex items-center justify-start gap-3 px-6 py-2.5 text-slate-400 hover:text-slate-200 transition-all text-sm w-full">
                 <i class="fa-solid fa-headset w-5 text-center text-amber-400"></i><span class="font-medium">Helpdesk</span>
             </button>
+            
             <button onclick="switchTab('staff')" id="tab-staff" class="sidebar-item flex items-center justify-start gap-3 px-6 py-2.5 text-slate-400 hover:text-slate-200 transition-all text-sm w-full">
                 <i class="fa-solid fa-id-badge w-5 text-center text-purple-400"></i><span class="font-medium">Staff IAM</span>
             </button>
             
-            <div id="nav-group-economy" class="px-6 mt-3 mb-1 border-t border-slate-800/50 pt-3"><span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Economy & Platform</span></div>
+            <div id="nav-group-economy" class="px-6 mt-3 mb-1 border-t border-slate-800/50 pt-3">
+                <span class="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Economy & Platform</span>
+            </div>
+            
             <button onclick="switchTab('finance')" id="tab-finance" class="sidebar-item flex items-center justify-start gap-3 px-6 py-2.5 text-slate-400 hover:text-slate-200 transition-all text-sm w-full">
                 <i class="fa-solid fa-money-bill-transfer w-5 text-center text-emerald-400"></i><span class="font-medium">Financial & MRR</span>
             </button>
+            
             <button onclick="switchTab('config')" id="tab-config" class="sidebar-item flex items-center justify-start gap-3 px-6 py-2.5 text-slate-400 hover:text-slate-200 transition-all text-sm w-full">
                 <i class="fa-solid fa-sliders w-5 text-center text-slate-300"></i><span class="font-medium">SaaS Config</span>
             </button>
+            
             <button onclick="switchTab('broadcast')" id="tab-broadcast" class="sidebar-item flex items-center justify-start gap-3 px-6 py-2.5 text-slate-400 hover:text-slate-200 transition-all text-sm w-full">
                 <i class="fa-solid fa-tower-broadcast w-5 text-center text-pink-500"></i><span class="font-medium">Broadcast Station</span>
             </button>
@@ -282,27 +346,21 @@
                             <div class="text-2xl font-black text-white font-mono" id="statWorkers">8/8</div>
                             <div class="text-[10px] text-blue-400 mt-1"><i class="fa-solid fa-check-circle"></i> Optimal (400MB Free)</div>
                         </div>
-                        
                         <div class="glass-panel p-4 rounded-xl border-t-2 border-t-purple-500 pointer-events-auto bg-slate-900/80">
                             <div class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">Engine Load</div>
                             <div class="text-2xl font-black text-white font-mono" id="statCpu">14%</div>
-                            <div class="w-full bg-slate-800 h-1 mt-2 rounded overflow-hidden">
-                                <div class="bg-purple-500 h-full w-[14%]" id="barCpu"></div>
-                            </div>
+                            <div class="w-full bg-slate-800 h-1 mt-2 rounded overflow-hidden"><div class="bg-purple-500 h-full w-[14%]" id="barCpu"></div></div>
                         </div>
-                        
                         <div class="glass-panel p-4 rounded-xl border-t-2 border-t-emerald-500 pointer-events-auto bg-slate-900/80">
                             <div class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">Domain Radar</div>
                             <div class="text-2xl font-black text-white font-mono"><i class="fa-solid fa-shield-check text-emerald-400"></i></div>
                             <div class="text-[10px] text-emerald-400 mt-1">IPs Clean / Not Blocked</div>
                         </div>
-                        
                         <div class="glass-panel p-4 rounded-xl border-t-2 border-t-amber-500 pointer-events-auto bg-slate-900/80">
                             <div class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">Port-25 Latency</div>
                             <div class="text-2xl font-black text-white font-mono" id="statPing">42ms</div>
                             <div class="text-[10px] text-amber-400 mt-1">Deep-Scan Handshake</div>
                         </div>
-                        
                         <div class="glass-panel p-4 rounded-xl border-t-2 border-t-sky-500 pointer-events-auto flex flex-col justify-between bg-slate-900/80">
                             <div class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">Wash Velocity</div>
                             <div class="text-2xl font-black text-white font-mono" id="statSpm">1,204 <span class="text-[10px] text-slate-500">req/m</span></div>
@@ -339,90 +397,95 @@
             </div>
         </div>
 
-        <div id="view-finance" class="hidden px-4 md:px-10 pb-10">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div class="glass-panel p-6 rounded-2xl border-t-2 border-t-emerald-500 flex flex-col justify-center">
-                    <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2 flex justify-between">Total Revenue (Live Gateway) <i class="fa-solid fa-arrow-trend-up text-emerald-500"></i></div>
-                    <div class="text-4xl font-black text-white mb-1 font-mono" id="liveMrrDisplay">₦0.00</div>
-                    <div class="text-xs text-emerald-400">Pulled directly from Flutterwave</div>
+        <div id="view-finance" class="hidden px-4 md:px-10 pb-10 max-w-7xl mx-auto">
+            
+            <div id="ceoFinanceControls" class="hidden mb-6 flex justify-end">
+                <button onclick="openCeoGoalOverride()" class="bg-yellow-600/20 border border-yellow-500/50 text-yellow-500 hover:bg-yellow-500 hover:text-white transition-colors px-4 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 shadow-[0_0_15px_rgba(234,179,8,0.15)]">
+                    <i class="fa-solid fa-sliders"></i> Master Financial Override
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="md:col-span-2 glass-panel p-6 rounded-2xl border-t-2 border-t-emerald-500 flex flex-col justify-center relative overflow-hidden">
+                    <div class="absolute right-0 top-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
+                    <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-3 flex justify-between relative z-10">
+                        <span>Multi-Currency Revenue (Live)</span>
+                        <i class="fa-solid fa-globe text-emerald-500"></i>
+                    </div>
+                    <div class="flex gap-6 relative z-10">
+                        <div>
+                            <div class="text-3xl font-black text-white font-mono" id="liveMrrNGN">₦0</div>
+                            <div class="text-[10px] text-emerald-400 mt-1">Local Gateway</div>
+                        </div>
+                        <div class="w-px bg-slate-800"></div>
+                        <div>
+                            <div class="text-3xl font-black text-white font-mono" id="liveMrrUSD">$0</div>
+                            <div class="text-[10px] text-emerald-400 mt-1">International Sync</div>
+                        </div>
+                    </div>
                 </div>
                 
-                <div class="glass-panel p-6 rounded-2xl border-t-2 border-t-red-500">
-                    <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2">Churn Risk (Failed Cards)</div>
-                    <div class="text-4xl font-black text-white mb-1 font-mono" id="liveChurnRisk">$0.00</div>
-                    <div class="text-xs text-red-400">Requires Dunning Sequence</div>
+                <div class="glass-panel p-6 rounded-2xl border-t-2 border-t-red-500 flex flex-col justify-center">
+                    <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2">Churn Risk (Failed)</div>
+                    <div class="text-2xl font-black text-white mb-1 font-mono" id="liveChurnRisk">₦0</div>
+                    <div class="text-[9px] text-red-400">Pending Dunning</div>
                 </div>
                 
-                <div class="glass-panel p-6 rounded-2xl border-t-2 border-t-purple-500">
-                    <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2">Active Paid Accounts</div>
-                    <div class="text-4xl font-black text-white mb-1 font-mono" id="livePaidCount">0</div>
-                    <div class="text-xs text-purple-400">Total Subscription Upgrades</div>
+                <div class="glass-panel p-6 rounded-2xl border-t-2 border-t-purple-500 flex flex-col justify-center">
+                    <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-2">Active Vaults</div>
+                    <div class="text-2xl font-black text-white mb-1 font-mono" id="livePaidCount">0</div>
+                    <div class="text-[9px] text-purple-400">Total Deployments</div>
                 </div>
             </div>
 
-            <div class="glass-panel p-6 md:p-8 rounded-2xl border-t-2 border-t-sky-500 mb-8">
-                <h3 class="text-xl font-bold text-white mb-2"><i class="fa-solid fa-money-bill-transfer text-sky-400 mr-2"></i> Flutterwave Live Ledger Sync</h3>
-                <p class="text-sm text-slate-400 mb-6">Fetch raw transaction data securely via Supabase Edge Functions.</p>
-                
-                <div class="flex flex-col md:flex-row gap-4 mb-4">
-                    <input type="password" id="fwSecretKey" readonly value="FLW_SECRET_KEY Hidden in Edge Vault" class="flex-1 bg-[#050914] border border-slate-700 p-3.5 rounded-xl text-sm text-emerald-500 outline-none font-mono cursor-not-allowed text-center">
-                    <button onclick="syncFinancials()" id="fetchLedgerBtn" class="action-btn bg-sky-600 hover:bg-sky-500 text-white font-bold px-8 py-3.5 rounded-xl shadow-lg shadow-sky-500/20 transition-all text-sm tracking-widest flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-cloud-arrow-down"></i> FETCH LIVE LEDGER
-                    </button>
-                </div>
-                
-                <div id="ledgerContainer" class="hidden mt-6 border border-slate-700 rounded-xl overflow-hidden bg-slate-900/50">
-                    <div class="px-4 py-3 bg-slate-950/80 border-b border-slate-800 text-[10px] font-bold text-slate-400 uppercase tracking-widest flex justify-between items-center">
-                        <span>Real-Time Transactions (Flutterwave API)</span>
-                        <span class="text-emerald-500"><i class="fa-solid fa-bolt"></i></span>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <div class="lg:col-span-2 glass-panel p-6 rounded-2xl border-t-2 border-t-sky-500 relative">
+                    <div class="flex justify-between items-center mb-6">
+                        <div>
+                            <h3 class="text-sm font-bold text-white"><i class="fa-solid fa-chart-line text-sky-400 mr-2"></i> Transaction Velocity</h3>
+                            <p class="text-[10px] text-slate-500 uppercase tracking-widest mt-1">Live Endpoint Mapping</p>
+                        </div>
+                        <button onclick="syncFinancials()" id="fetchLedgerBtn" class="action-btn bg-sky-600/20 hover:bg-sky-600 text-sky-400 hover:text-white border border-sky-500/30 font-bold px-4 py-2 rounded-lg transition-all text-xs tracking-widest flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-bolt"></i> SYNC LEDGER
+                        </button>
                     </div>
-                    <div class="overflow-x-auto custom-scrollbar max-h-64">
-                        <table class="w-full text-left">
-                            <thead class="bg-slate-900/50 text-[10px] text-slate-500 uppercase tracking-widest sticky top-0">
-                                <tr>
-                                    <th class="p-4">TX Reference</th>
-                                    <th class="p-4">Customer</th>
-                                    <th class="p-4 text-right">Amount</th>
-                                    <th class="p-4 text-center">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody id="ledgerTableBody" class="text-sm text-slate-300 divide-y divide-slate-800/50">
-                                </tbody>
-                        </table>
+                    <div class="w-full h-64 relative">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-6 rounded-2xl border-t-2 border-t-amber-500 flex flex-col items-center justify-center relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-b from-amber-500/5 to-transparent"></div>
+                    <div class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-4 w-full text-center relative z-10">2026 Objective Tracking</div>
+                    
+                    <div class="relative w-40 h-40 flex items-center justify-center z-10">
+                        <svg viewBox="0 0 36 36" class="circular-chart absolute inset-0 w-full h-full transform -rotate-90">
+                            <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            <path id="goalCircle" class="circle" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        </svg>
+                        <div class="text-center">
+                            <div class="text-2xl font-black text-white font-mono" id="goalPercentage">0%</div>
+                            <div class="text-[8px] text-slate-500 uppercase tracking-widest mt-1">of <span id="currentGoalText">250M</span> Goal</div>
+                        </div>
                     </div>
                 </div>
             </div>
-            
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div class="glass-panel rounded-2xl overflow-hidden flex flex-col">
-                    <div class="bg-slate-900/80 px-6 py-4 border-b border-slate-800 flex justify-between items-center">
-                        <h3 class="text-sm font-bold text-white"><i class="fa-solid fa-credit-card text-red-400 mr-2"></i> Dunning & Recovery Engine</h3>
-                    </div>
-                    <div class="overflow-x-auto custom-scrollbar p-0 flex-1">
-                        <table class="w-full text-left">
-                            <thead class="bg-slate-900/50 text-[10px] text-slate-500 uppercase tracking-widest">
-                                <tr>
-                                    <th class="p-4">Customer</th>
-                                    <th class="p-4 text-right">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="dunningTableBody" class="text-sm text-slate-300 divide-y divide-slate-800/50">
-                                <tr><td colspan="2" class="p-10 text-center text-slate-500">Fetching live dunning data...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
+
+            <div class="glass-panel rounded-2xl overflow-hidden flex flex-col mb-10">
+                <div class="px-6 py-4 bg-slate-900/80 border-b border-slate-800 flex justify-between items-center">
+                    <h3 class="text-sm font-bold text-white"><i class="fa-solid fa-list-ul text-emerald-400 mr-2"></i> Live Gateway Feed</h3>
+                    <span class="text-[9px] font-mono text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20" id="txCountBadge">0 TXNs</span>
                 </div>
-                
-                <div class="glass-panel rounded-2xl overflow-hidden flex flex-col p-6">
-                    <h3 class="text-sm font-bold text-white mb-4 border-b border-slate-800 pb-3"><i class="fa-solid fa-ticket text-amber-400 mr-2"></i> Promo Code Matrix</h3>
-                    
-                    <div id="promoContainer" class="space-y-2 mb-4">
-                        <div class="p-4 text-center text-slate-500 text-xs">Fetching live promos...</div>
+                <div class="overflow-x-auto custom-scrollbar bg-slate-950/50 min-h-[250px]">
+                    <div class="grid grid-cols-12 gap-4 px-6 py-3 border-b border-slate-800 text-[9px] font-bold text-slate-500 uppercase tracking-widest sticky top-0 bg-slate-950/90 z-10">
+                        <div class="col-span-3">Timestamp</div>
+                        <div class="col-span-4">Customer Network</div>
+                        <div class="col-span-2 text-right">Value</div>
+                        <div class="col-span-3 text-center">Status</div>
                     </div>
-                    
-                    <button class="action-btn w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-lg text-xs transition-colors border border-slate-700 mt-2">
-                        <i class="fa-solid fa-plus mr-1"></i> CREATE NEW PROMO
-                    </button>
+                    <div id="ledgerTableBody" class="flex flex-col text-sm text-slate-300 relative pb-4">
+                        <div class="p-10 text-center text-slate-600 text-xs italic">Awaiting API Sync...</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -606,8 +669,27 @@
         </div>
     </div>
 
+    <div id="ceoGoalModal" class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/90 px-4 backdrop-blur-sm">
+        <div class="max-w-sm w-full bg-[#0b1120] border border-yellow-500/50 rounded-2xl p-6 shadow-[0_0_30px_rgba(234,179,8,0.2)] relative">
+            <button onclick="document.getElementById('ceoGoalModal').classList.add('hidden')" class="absolute top-4 right-4 text-slate-500 hover:text-yellow-500"><i class="fa-solid fa-xmark"></i></button>
+            <h3 class="text-lg font-black text-yellow-500 mb-1 tracking-tight">Master Financial Override</h3>
+            <p class="text-[10px] text-slate-400 mb-6 font-mono">Adjust the global revenue tracking parameters.</p>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-widest">Set Objective Goal (NGN)</label>
+                    <input type="number" id="ceoNewGoalInput" class="w-full bg-[#050914] border border-slate-700 focus:border-yellow-500 outline-none p-3 rounded-lg text-sm text-white font-mono" value="250000000">
+                </div>
+                
+                <button onclick="executeCeoGoalOverride()" class="w-full bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-3 rounded-lg text-xs mt-4 transition-colors">UPDATE MATRIX</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // MASTER CONFIGURATION OBJECT
+        // =========================================
+        // CONFIGURATION & GLOBAL VARIABLES
+        // =========================================
         const ADMIN_CONFIG = {
             SUPABASE_URL: 'https://onznuyxevistjmsgxnfm.supabase.co',
             SUPABASE_KEY: 'sb_publishable_gZ1Ea52nk0JCEO5twFFJwQ_CkHjXZqg'
@@ -616,9 +698,13 @@
         const _supabase = supabase.createClient(ADMIN_CONFIG.SUPABASE_URL, ADMIN_CONFIG.SUPABASE_KEY);
         let loadedUsers = [];
         let targetOverrideUserId = null;
-        let currentUserRole = 'Admin'; // Default fallback
+        let currentUserRole = 'Admin';
+        let revenueChartInstance = null;
+        let currentFinancialGoal = 250000000; // Base 250m goal
 
-        // UI Controls
+        // =========================================
+        // UI & NAVIGATION CONTROLS
+        // =========================================
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebarOverlay');
@@ -648,15 +734,17 @@
             cmdInput.value = ''; 
         }
 
-        // --- GOD MODE GLOBE INIT ---
+        // =========================================
+        // GOD MODE GLOBE & TELEMETRY
+        // =========================================
         let arcData = [];
         const mxOrigin = { lat: 32.77, lng: -96.79, city: "Dallas (ORIGIN)", type: 'origin' };
         let mapLabels = [
             mxOrigin, 
             { lat: 51.50, lng: -0.12, city: "London", type: 'target' }, 
-            { lat: 35.68, lng: 139.76, city: "Tokyo", type: 'target' },
+            { lat: 35.68, lng: 139.76, city: "Tokyo", type: 'target' }, 
             { lat: 50.11, lng: 8.68, city: "Frankfurt", type: 'target' }, 
-            { lat: 6.52, lng: 3.37, city: "Lagos", type: 'target' },
+            { lat: 6.52, lng: 3.37, city: "Lagos", type: 'target' }, 
             { lat: 1.35, lng: 103.81, city: "Singapore", type: 'target' }, 
             { lat: 40.71, lng: -74.00, city: "New York", type: 'target' }
         ];
@@ -676,7 +764,7 @@
             
             window.world = Globe()(globeContainer)
                 .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-dark.jpg')
-                .backgroundColor('#050810') 
+                .backgroundColor('#050810')
                 .showAtmosphere(true)
                 .atmosphereColor('#38bdf8')
                 .atmosphereAltitude(0.15)
@@ -694,7 +782,7 @@
                 .pointColor('color')
                 .pointAltitude(0.01)
                 .pointRadius('size')
-                .pointsMerge(true) 
+                .pointsMerge(true)
                 .arcColor('color')
                 .arcStroke(0.3)
                 .arcDashLength(0.1)
@@ -712,22 +800,21 @@
             
             fetch('https://restcountries.com/v3.1/all?fields=name,latlng')
                 .then(res => res.json())
-                .then(countries => {
+                .then(countries => { 
                     const countryNodes = countries.map(c => ({ 
                         lat: c.latlng[0], 
                         lng: c.latlng[1], 
                         city: c.name.common, 
                         type: 'country' 
-                    }));
+                    })); 
                     mapLabels = [...mapLabels, ...countryNodes]; 
-                    window.world.labelsData(mapLabels);
+                    window.world.labelsData(mapLabels); 
                 })
                 .catch(e => console.log('Matrix country fetch passed over.'));
         }
-        
         initGlobe();
 
-        // --- PM2 SOCKET TELEMETRY ---
+        // --- SOCKET TELEMETRY ---
         const socket = io('https://pulse.mailvah.com'); 
         const feed = document.getElementById('liveActionFeed');
         
@@ -754,11 +841,11 @@
             let arcBeamColor = ['#10B981', '#34D399']; 
             let drawArc = false;
             
-            if(logText.includes('FATAL') || logText.includes('BOUNCE') || logText.includes('NOT exist') || logText.includes('[-]') || logText.includes('DEAD')) {
+            if(logText.includes('FATAL') || logText.includes('BOUNCE') || logText.includes('NOT exist') || logText.includes('[-]') || logText.includes('DEAD')) { 
                 textColor = 'text-red-400'; 
                 borderColor = 'border-red-500'; 
                 arcBeamColor = ['#EF4444', '#F87171']; 
-                drawArc = true;
+                drawArc = true; 
             } else if (logText.includes('SUCCESS') || logText.includes('SAFE') || logText.includes('VALID') || logText.includes('[+]')) {
                 drawArc = true;
             }
@@ -769,18 +856,16 @@
                 const parts = logText.split('| COORDS: '); 
                 cleanLog = parts[0]; 
                 const coordString = parts[1].trim().split(' TO ');
-                
-                if (coordString.length === 2) {
+                if (coordString.length === 2) { 
                     const start = coordString[0].split(','); 
-                    const end = coordString[1].split(',');
+                    const end = coordString[1].split(','); 
                     arcData.push({ 
                         startLat: parseFloat(start[0]), 
                         startLng: parseFloat(start[1]), 
                         endLat: parseFloat(end[0]), 
                         endLng: parseFloat(end[1]), 
                         color: arcBeamColor 
-                    });
-                    
+                    }); 
                     if (arcData.length > 40) arcData.shift(); 
                     window.world.arcsData([...arcData]); 
                 }
@@ -788,98 +873,127 @@
                 const potentialTargets = mapLabels.filter(h => h.type !== 'origin'); 
                 const hub = potentialTargets[Math.floor(Math.random() * potentialTargets.length)];
                 const tgtLat = hub.lat + (Math.random() - 0.5) * 2; 
-                const tgtLng = hub.lng + (Math.random() - 0.5) * 2;
-                
+                const tgtLng = hub.lng + (Math.random() - 0.5) * 2; 
                 arcData.push({ 
                     startLat: mxOrigin.lat, 
                     startLng: mxOrigin.lng, 
                     endLat: tgtLat, 
                     endLng: tgtLng, 
                     color: arcBeamColor 
-                });
-                
+                }); 
                 if (arcData.length > 40) arcData.shift(); 
                 window.world.arcsData([...arcData]); 
             }
             
             const logLine = document.createElement('div'); 
-            logLine.className = `feed-item border-l-2 pl-2 py-1 ${borderColor} bg-slate-800/30 ${textColor} font-mono text-[10px] break-all`;
+            logLine.className = `feed-item border-l-2 pl-2 py-1 ${borderColor} bg-slate-800/30 ${textColor} font-mono text-[10px] break-all`; 
             logLine.innerText = `> ${cleanLog.trim()}`; 
             feed.appendChild(logLine); 
-            feed.scrollTop = feed.scrollHeight;
+            feed.scrollTop = feed.scrollHeight; 
             
             if (feed.children.length > 100) {
                 feed.removeChild(feed.firstChild);
             }
         });
 
-        // --- ROLE-BASED ACCESS CONTROL (RBAC) LOGIC ---
+        // Fire Globe Arc specifically on Financial Transactions
+        function fireFinancialArc(currency) {
+            if(!window.world) return;
+            let startHub = mapLabels.find(l => l.city === 'London'); 
+            if(currency === 'NGN') startHub = mapLabels.find(l => l.city === 'Lagos');
+            if(currency === 'USD') startHub = mapLabels.find(l => l.city === 'New York');
+            
+            if(startHub) {
+                const beamColor = currentUserRole === 'CEO' ? ['#eab308', '#fef08a'] : ['#38bdf8', '#bae6fd'];
+                arcData.push({ 
+                    startLat: startHub.lat, 
+                    startLng: startHub.lng, 
+                    endLat: mxOrigin.lat, 
+                    endLng: mxOrigin.lng, 
+                    color: beamColor 
+                });
+                
+                if (arcData.length > 40) arcData.shift();
+                window.world.arcsData([...arcData]); 
+            }
+        }
+
+        // =========================================
+        // ROLE-BASED ACCESS CONTROL (RBAC) LOGIC
+        // =========================================
         function enforceRBAC(role) {
             currentUserRole = role;
             
             const allTabs = ['tab-users', 'tab-staff', 'tab-finance', 'tab-config', 'tab-broadcast', 'tab-support', 'tab-security'];
-            allTabs.forEach(id => {
-                const tabEl = document.getElementById(id);
-                if(tabEl) tabEl.classList.remove('hidden');
+            allTabs.forEach(id => { 
+                const tabEl = document.getElementById(id); 
+                if(tabEl) tabEl.classList.remove('hidden'); 
             });
-            document.getElementById('nav-group-telemetry').classList.remove('hidden');
-            document.getElementById('nav-group-control').classList.remove('hidden');
+            
+            document.getElementById('nav-group-telemetry').classList.remove('hidden'); 
+            document.getElementById('nav-group-control').classList.remove('hidden'); 
             document.getElementById('nav-group-economy').classList.remove('hidden');
-
-            document.querySelectorAll('.action-btn').forEach(btn => {
-                btn.disabled = false;
-                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            document.getElementById('ceoFinanceControls').classList.add('hidden');
+            
+            document.querySelectorAll('.action-btn').forEach(btn => { 
+                btn.disabled = false; 
+                btn.classList.remove('opacity-50', 'cursor-not-allowed'); 
             });
-
-            document.getElementById('appBody').classList.remove('ceo-skin');
-            document.getElementById('brandingLogo').classList.replace('from-yellow-400', 'from-sky-400');
+            
+            document.getElementById('appBody').classList.remove('ceo-skin'); 
+            document.getElementById('brandingLogo').classList.replace('from-yellow-400', 'from-sky-400'); 
             document.getElementById('brandingLogo').classList.replace('to-yellow-600', 'to-blue-600');
             
             if (role === 'CEO') {
-                document.getElementById('appBody').classList.add('ceo-skin');
-                document.getElementById('brandingLogo').classList.replace('from-sky-400', 'from-yellow-400');
-                document.getElementById('brandingLogo').classList.replace('to-blue-600', 'to-yellow-600');
+                document.getElementById('appBody').classList.add('ceo-skin'); 
+                document.getElementById('brandingLogo').classList.replace('from-sky-400', 'from-yellow-400'); 
+                document.getElementById('brandingLogo').classList.replace('to-blue-600', 'to-yellow-600'); 
                 document.getElementById('roleDisplayBadge').innerText = "OVERSEER NETWORK";
+                document.getElementById('ceoFinanceControls').classList.remove('hidden');
+                if(revenueChartInstance) updateChartColors(true);
+            } else {
+                if(revenueChartInstance) updateChartColors(false);
+            }
+            
+            if (role === 'Admin') { 
+                document.getElementById('tab-finance').classList.add('hidden'); 
+                document.getElementById('tab-staff').classList.add('hidden'); 
             } 
-            else if (role === 'Admin') {
-                document.getElementById('tab-finance').classList.add('hidden');
-                document.getElementById('tab-staff').classList.add('hidden');
+            else if (role === 'Growth') { 
+                document.getElementById('tab-security').classList.add('hidden'); 
+                document.getElementById('tab-staff').classList.add('hidden'); 
+                document.getElementById('tab-config').classList.add('hidden'); 
+                document.getElementById('tab-support').classList.add('hidden'); 
             } 
-            else if (role === 'Growth') {
-                document.getElementById('tab-security').classList.add('hidden');
-                document.getElementById('tab-staff').classList.add('hidden');
-                document.getElementById('tab-config').classList.add('hidden');
-                document.getElementById('tab-support').classList.add('hidden');
+            else if (role === 'Infra') { 
+                document.getElementById('tab-finance').classList.add('hidden'); 
+                document.getElementById('tab-users').classList.add('hidden'); 
+                document.getElementById('tab-staff').classList.add('hidden'); 
+                document.getElementById('tab-broadcast').classList.add('hidden'); 
+                document.getElementById('nav-group-economy').classList.add('hidden'); 
             } 
-            else if (role === 'Infra') {
-                document.getElementById('tab-finance').classList.add('hidden');
-                document.getElementById('tab-users').classList.add('hidden');
-                document.getElementById('tab-staff').classList.add('hidden');
-                document.getElementById('tab-broadcast').classList.add('hidden');
-                document.getElementById('nav-group-economy').classList.add('hidden');
-            } 
-            else if (role === 'Investor') {
-                document.getElementById('tab-security').classList.add('hidden');
-                document.getElementById('tab-staff').classList.add('hidden');
-                document.getElementById('tab-config').classList.add('hidden');
-                document.getElementById('tab-broadcast').classList.add('hidden');
-                document.getElementById('tab-support').classList.add('hidden');
-                
-                document.querySelectorAll('.action-btn').forEach(btn => {
-                    btn.disabled = true;
-                    btn.classList.add('opacity-50', 'cursor-not-allowed');
-                });
+            else if (role === 'Investor') { 
+                document.getElementById('tab-security').classList.add('hidden'); 
+                document.getElementById('tab-staff').classList.add('hidden'); 
+                document.getElementById('tab-config').classList.add('hidden'); 
+                document.getElementById('tab-broadcast').classList.add('hidden'); 
+                document.getElementById('tab-support').classList.add('hidden'); 
+                document.querySelectorAll('.action-btn').forEach(btn => { 
+                    btn.disabled = true; 
+                    btn.classList.add('opacity-50', 'cursor-not-allowed'); 
+                }); 
             }
         }
 
-        // --- TAB SWITCHING ---
+        // =========================================
+        // TAB SWITCHING & CHART INITIALIZATION
+        // =========================================
         function switchTab(tab) {
-            ['overlord', 'users', 'staff', 'finance', 'config', 'broadcast', 'support', 'security'].forEach(id => {
+            ['overlord', 'users', 'staff', 'finance', 'config', 'broadcast', 'support', 'security'].forEach(id => { 
                 const btn = document.getElementById('tab-' + id); 
-                if(btn) btn.classList.remove('active-tab');
-                
+                if(btn) btn.classList.remove('active-tab'); 
                 const view = document.getElementById('view-' + id); 
-                if(view) view.classList.add('hidden');
+                if(view) view.classList.add('hidden'); 
             });
             
             const activeBtn = document.getElementById('tab-' + tab); 
@@ -898,14 +1012,18 @@
                 header.classList.add('flex'); 
             }
             
-            const titles = {
-                'users': ['Client Vaults', 'Manage operator identities, manual credit overrides, and security bans.'],
-                'staff': ['Staff IAM', 'Provision restricted accounts and manage internal team security clearance.'],
-                'finance': ['Financial & MRR Hub', 'Sync live revenue, manage dunning, and control promo codes.'],
-                'config': ['SaaS Configuration', 'Deploy dynamic pricing updates and control the platform kill switch.'],
-                'broadcast': ['Broadcast Station', 'Push instant notification banners to all active operator terminals.'],
-                'support': ['Integrated Helpdesk', 'Resolve user tickets and manage apology credit injections.'],
-                'security': ['Threat Grid & Throttling', 'Monitor API abuse and protect Hostwinds server resources.']
+            if(tab === 'finance' && !revenueChartInstance) {
+                initSplineChart();
+            }
+
+            const titles = { 
+                'users': ['Client Vaults', 'Manage operator identities, manual credit overrides, and security bans.'], 
+                'staff': ['Staff IAM', 'Provision restricted accounts and manage internal team security clearance.'], 
+                'finance': ['Financial & MRR Hub', 'Multi-currency live ledger and objective tracking.'], 
+                'config': ['SaaS Configuration', 'Deploy dynamic pricing updates and control the platform kill switch.'], 
+                'broadcast': ['Broadcast Station', 'Push instant notification banners to all active operator terminals.'], 
+                'support': ['Integrated Helpdesk', 'Resolve user tickets and manage apology credit injections.'], 
+                'security': ['Threat Grid & Throttling', 'Monitor API abuse and protect Hostwinds server resources.'] 
             };
             
             if(titles[tab]) { 
@@ -925,37 +1043,114 @@
             }
         });
 
-        // --- AUTHENTICATION ---
+        // Initialize Chart.js Spline Matrix
+        function initSplineChart() {
+            const ctx = document.getElementById('revenueChart').getContext('2d');
+            const isCEO = currentUserRole === 'CEO';
+            const lineColor = isCEO ? '#eab308' : '#38bdf8';
+            
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, isCEO ? 'rgba(234, 179, 8, 0.4)' : 'rgba(56, 189, 248, 0.4)');
+            gradient.addColorStop(1, 'rgba(15, 23, 42, 0)');
+
+            revenueChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['W1', 'W2', 'W3', 'W4', 'W5', 'W6'],
+                    datasets: [{ 
+                        label: 'Revenue Velocity', 
+                        data: [0,0,0,0,0,0], 
+                        borderColor: lineColor, 
+                        backgroundColor: gradient, 
+                        borderWidth: 3, 
+                        tension: 0.4, 
+                        fill: true, 
+                        pointBackgroundColor: '#0b1120', 
+                        pointBorderColor: lineColor, 
+                        pointBorderWidth: 2, 
+                        pointRadius: 4, 
+                        pointHoverRadius: 6 
+                    }]
+                },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    plugins: { 
+                        legend: { display: false }, 
+                        tooltip: { 
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)', 
+                            titleColor: '#fff', 
+                            bodyColor: lineColor, 
+                            borderColor: 'rgba(51, 65, 85, 0.5)', 
+                            borderWidth: 1 
+                        } 
+                    }, 
+                    scales: { 
+                        x: { 
+                            grid: { display: false, color: 'rgba(51, 65, 85, 0.2)' }, 
+                            ticks: { color: '#64748b', font: { family: 'Inter', size: 10 } } 
+                        }, 
+                        y: { 
+                            grid: { color: 'rgba(51, 65, 85, 0.2)', borderDash: [5, 5] }, 
+                            ticks: { 
+                                color: '#64748b', 
+                                font: { family: 'Inter', size: 10 }, 
+                                callback: function(value) { return '₦' + value; } 
+                            } 
+                        } 
+                    } 
+                }
+            });
+        }
+
+        function updateChartColors(isCEO) {
+            if(!revenueChartInstance) return;
+            const lineColor = isCEO ? '#eab308' : '#38bdf8';
+            const ctx = document.getElementById('revenueChart').getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, isCEO ? 'rgba(234, 179, 8, 0.4)' : 'rgba(56, 189, 248, 0.4)');
+            gradient.addColorStop(1, 'rgba(15, 23, 42, 0)');
+            
+            revenueChartInstance.data.datasets[0].borderColor = lineColor;
+            revenueChartInstance.data.datasets[0].backgroundColor = gradient;
+            revenueChartInstance.data.datasets[0].pointBorderColor = lineColor;
+            revenueChartInstance.options.plugins.tooltip.bodyColor = lineColor;
+            revenueChartInstance.update();
+        }
+
+        // =========================================
+        // AUTHENTICATION LOGIC
+        // =========================================
         async function handleAdminLogin() {
             const email = document.getElementById('authEmail').value.trim(); 
-            const password = document.getElementById('authPassword').value;
+            const password = document.getElementById('authPassword').value; 
             const msg = document.getElementById('authMessage'); 
             
             if(!email || !password) return;
-
-            const btn = document.getElementById('loginBtn');
+            
+            const btn = document.getElementById('loginBtn'); 
             btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> AUTHENTICATING...`;
-
+            
             const { data: authData, error: authError } = await _supabase.auth.signInWithPassword({ email, password });
             
             if (authError) { 
                 msg.innerText = "ACCESS DENIED: " + authError.message; 
                 msg.classList.remove('hidden'); 
-                btn.innerHTML = `<i class="fa-solid fa-fingerprint"></i> INITIATE CLEARANCE`;
+                btn.innerHTML = `<i class="fa-solid fa-fingerprint"></i> INITIATE CLEARANCE`; 
                 return; 
             }
-
+            
             let resolvedRole = 'Admin'; 
-            const { data: staffData, error: staffError } = await _supabase.from('staff_users').select('role').eq('email', email).single();
+            const { data: staffData } = await _supabase.from('staff_users').select('role').eq('email', email).single();
+            
             if (staffData && staffData.role) {
-                resolvedRole = staffData.role;
+                resolvedRole = staffData.role; 
             } else if (email.includes('founder') || email === 'admin@mailvah.com' || email === 'ceo@mailvah.com') {
                 resolvedRole = 'CEO';
             }
-
-            enforceRBAC(resolvedRole);
-
-            document.getElementById('adminAuthContainer').classList.add('hidden');
+            
+            enforceRBAC(resolvedRole); 
+            document.getElementById('adminAuthContainer').classList.add('hidden'); 
             document.getElementById('staffIdentityDisplay').innerText = `${resolvedRole}: ${authData.user.email}`;
             
             switchTab('overlord'); 
@@ -968,28 +1163,26 @@
             window.location.reload(); 
         }
 
-        // --- REAL-TIME SUPABASE CRUD OPERATIONS ---
         function fetchAllData() { 
             fetchRealUsers(); 
             fetchRealStaff(); 
             fetchSupportTickets(); 
-            fetchFinanceData();
+            fetchFinanceData(); // Fetch the promos and dunning 
         }
 
-        // 1. Users & Vaults
+        // =========================================
+        // CLIENT VAULTS & USERS
+        // =========================================
         async function fetchRealUsers() {
             const { data: creditsData } = await _supabase.from('user_credits').select('*');
-            
             if(creditsData) {
                 loadedUsers = creditsData; 
-                renderUsersTable(loadedUsers);
+                renderUsersTable(loadedUsers); 
                 
                 let paidCount = 0;
-                
-                loadedUsers.forEach(u => {
-                    if(u.plan_tier !== 'Sandbox') paidCount++;
+                loadedUsers.forEach(u => { 
+                    if(u.plan_tier !== 'Sandbox') paidCount++; 
                 });
-                
                 document.getElementById('livePaidCount').innerText = paidCount;
             }
         }
@@ -999,11 +1192,11 @@
             tbody.innerHTML = '';
             
             usersArray.forEach(u => {
-                let actionHTML = '';
+                let actionHTML = ''; 
                 if(currentUserRole !== 'Investor') {
                     actionHTML = `<button onclick="openRealCreditOverride('${u.id}', '${u.plan_tier}', ${u.integrity_vault || 0}, ${u.discovery_vault || 0})" class="action-btn text-[10px] bg-slate-800 hover:bg-sky-600 text-sky-400 hover:text-white px-3 py-2 rounded-lg transition-colors uppercase font-bold tracking-widest border border-slate-700">Edit</button>`;
                 }
-
+                
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-800/30 border-b border-slate-800/50">
                         <td class="p-4 font-mono text-[10px] text-slate-400 break-all">${u.id}</td>
@@ -1021,41 +1214,41 @@
             renderUsersTable(loadedUsers.filter(u => (u.id && u.id.toLowerCase().includes(query)))); 
         }
         
-        function openRealCreditOverride(userId, plan, wash, hunt) {
+        function openRealCreditOverride(userId, plan, wash, hunt) { 
             targetOverrideUserId = userId; 
-            document.getElementById('overrideUserId').innerText = userId;
+            document.getElementById('overrideUserId').innerText = userId; 
             document.getElementById('overrideWash').value = wash; 
-            document.getElementById('overrideHunt').value = hunt;
-            document.getElementById('creditOverrideModal').classList.remove('hidden');
+            document.getElementById('overrideHunt').value = hunt; 
+            document.getElementById('creditOverrideModal').classList.remove('hidden'); 
         }
         
-        async function executeRealCreditOverride() {
-            await _supabase.from('user_credits').update({
+        async function executeRealCreditOverride() { 
+            await _supabase.from('user_credits').update({ 
                 integrity_vault: parseInt(document.getElementById('overrideWash').value), 
                 discovery_vault: parseInt(document.getElementById('overrideHunt').value), 
-                plan_tier: document.getElementById('overridePlan').value
-            }).eq('id', targetOverrideUserId);
+                plan_tier: document.getElementById('overridePlan').value 
+            }).eq('id', targetOverrideUserId); 
             
-            document.getElementById('creditOverrideModal').classList.add('hidden');
+            document.getElementById('creditOverrideModal').classList.add('hidden'); 
         }
 
-        // 2. Finance Data (Dunning & Promos)
+        // =========================================
+        // FINANCE DATA & LIVE FLUTTERWAVE LEDGER
+        // =========================================
         async function fetchFinanceData() {
+            // Dunning Data
             const { data: dunningData } = await _supabase.from('dunning_queue').select('*');
             const dunningBody = document.getElementById('dunningTableBody');
             dunningBody.innerHTML = '';
             
             let churnRisk = 0;
-            
             if (dunningData && dunningData.length > 0) {
                 dunningData.forEach(d => {
                     if(d.status !== 'Resolved') churnRisk += Number(d.amount_owed);
-                    
                     let actionHTML = '';
                     if(currentUserRole !== 'Investor') {
-                        actionHTML = `<button onclick="alert('Initiating Dunning sequence for $${d.amount_owed}')" class="action-btn bg-red-500/10 text-red-400 px-3 py-1 rounded text-[10px] uppercase font-bold border border-red-500/30 hover:bg-red-600 hover:text-white transition-colors">Recover $${d.amount_owed}</button>`;
+                        actionHTML = `<button onclick="alert('Initiating Dunning sequence for NGN${d.amount_owed}')" class="action-btn bg-red-500/10 text-red-400 px-3 py-1 rounded text-[10px] uppercase font-bold border border-red-500/30 hover:bg-red-600 hover:text-white transition-colors">Recover</button>`;
                     }
-
                     dunningBody.innerHTML += `
                         <tr class="hover:bg-slate-800/30 border-b border-slate-800/50">
                             <td class="p-4">
@@ -1069,9 +1262,9 @@
             } else {
                 dunningBody.innerHTML = `<tr><td colspan="2" class="p-10 text-center text-slate-500">No pending failed payments.</td></tr>`;
             }
-            
-            document.getElementById('liveChurnRisk').innerText = '$' + churnRisk.toLocaleString() + '.00';
+            document.getElementById('liveChurnRisk').innerText = '₦' + churnRisk.toLocaleString();
 
+            // Promo Data
             const { data: promoData } = await _supabase.from('promo_codes').select('*');
             const promoContainer = document.getElementById('promoContainer');
             promoContainer.innerHTML = '';
@@ -1093,63 +1286,130 @@
             }
         }
 
-        // Edge Function FLUTTERWAVE Live Fetch
+        // Live Edge Function Fetch
         async function syncFinancials() {
             const btn = document.getElementById('fetchLedgerBtn');
             const originalText = btn.innerHTML;
-            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> FETCHING LIVE LEDGER...`;
+            btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> SYNCING LIVE...`;
             btn.disabled = true;
 
             try {
-                // Call the Supabase Edge Function securely
                 const { data, error } = await _supabase.functions.invoke('fetch-flutterwave');
                 
-                btn.innerHTML = originalText;
+                btn.innerHTML = originalText; 
                 btn.disabled = false;
                 
-                if (error) throw error;
+                if (error) throw error; 
                 if (data.error) throw new Error(data.error);
 
-                document.getElementById('ledgerContainer').classList.remove('hidden');
                 const tbody = document.getElementById('ledgerTableBody');
                 tbody.innerHTML = '';
                 
                 const transactions = data.data || [];
-                
+                document.getElementById('txCountBadge').innerText = `${transactions.length} TXNs`;
+
                 if(transactions.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" class="p-6 text-center text-slate-500">No live transactions found on Flutterwave.</td></tr>';
+                    tbody.innerHTML = '<div class="p-10 text-center text-slate-500 text-xs">No recent transactions synced from gateway.</div>';
                     return;
                 }
                 
-                let realRevenue = 0;
+                let totalNGN = 0; 
+                let totalUSD = 0;
+                let chartDataArray = [0,0,0,0,0,0]; 
 
-                transactions.forEach(tx => {
-                    if(tx.status === 'successful') realRevenue += tx.amount;
+                transactions.forEach((tx, index) => {
+                    if(tx.status === 'successful') {
+                        if(tx.currency === 'NGN') totalNGN += tx.amount;
+                        else if(tx.currency === 'USD') totalUSD += tx.amount;
+                        else totalUSD += (tx.amount / 100); 
+
+                        setTimeout(() => fireFinancialArc(tx.currency), index * 300);
+                        chartDataArray[index % 6] += (tx.currency === 'NGN' ? tx.amount : tx.amount * 1500); 
+                    }
 
                     const statusColor = tx.status === 'successful' ? 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' : 'text-red-400 bg-red-500/10 border-red-500/20';
-                    tbody.innerHTML += `
-                        <tr class="hover:bg-slate-800/30 border-b border-slate-800/50">
-                            <td class="p-4 font-mono text-[10px] text-slate-400">${tx.tx_ref}</td>
-                            <td class="p-4 font-medium text-white">${tx.customer.email}</td>
-                            <td class="p-4 text-right font-mono text-emerald-400">${tx.currency} ${tx.amount.toLocaleString()}</td>
-                            <td class="p-4 text-center"><span class="border text-[9px] px-2 py-0.5 rounded tracking-widest uppercase ${statusColor}">${tx.status}</span></td>
-                        </tr>
+                    const icon = tx.status === 'successful' ? '<i class="fa-solid fa-arrow-right-to-bracket text-emerald-500"></i>' : '<i class="fa-solid fa-triangle-exclamation text-red-500"></i>';
+                    const d = new Date(tx.created_at);
+                    
+                    const row = document.createElement('div');
+                    row.className = `grid grid-cols-12 gap-4 px-6 py-4 border-b border-slate-800/50 hover:bg-slate-900/80 transition-colors ticker-row items-center`;
+                    row.style.animationDelay = `${index * 0.1}s`;
+                    row.innerHTML = `
+                        <div class="col-span-3 flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center">${icon}</div>
+                            <div>
+                                <div class="text-xs text-white font-mono">${tx.tx_ref ? tx.tx_ref.substring(0,9) : 'SYS_SYNC'}</div>
+                                <div class="text-[9px] text-slate-500">${d.getHours()}:${d.getMinutes()} • ${d.toLocaleDateString()}</div>
+                            </div>
+                        </div>
+                        <div class="col-span-4">
+                            <div class="text-xs text-white font-medium truncate">${tx.customer ? tx.customer.email : 'External Client'}</div>
+                            <div class="text-[9px] text-slate-400 font-mono tracking-widest">${tx.payment_type || 'CARD'}</div>
+                        </div>
+                        <div class="col-span-2 text-right">
+                            <div class="text-sm font-black text-white font-mono">${tx.currency} ${tx.amount.toLocaleString()}</div>
+                        </div>
+                        <div class="col-span-3 text-center">
+                            <span class="border text-[9px] px-3 py-1 rounded-full tracking-widest uppercase ${statusColor} font-bold">${tx.status}</span>
+                        </div>
                     `;
+                    tbody.appendChild(row);
                 });
 
-                // Update the MRR / Revenue card with ACTUAL cash values
-                document.getElementById('liveMrrDisplay').innerText = '₦' + realRevenue.toLocaleString();
+                document.getElementById('liveMrrNGN').innerText = '₦' + (totalNGN > 0 ? totalNGN.toLocaleString() : '0');
+                document.getElementById('liveMrrUSD').innerText = '$' + (totalUSD > 0 ? totalUSD.toLocaleString() : '0');
+
+                if(revenueChartInstance) {
+                    revenueChartInstance.data.datasets[0].data = chartDataArray.reverse();
+                    revenueChartInstance.update();
+                }
+
+                // Update 250M Goal Logic
+                updateGoalRing(totalNGN, totalUSD);
                 
             } catch (err) {
-                btn.innerHTML = originalText;
+                btn.innerHTML = originalText; 
                 btn.disabled = false;
-                alert("Edge Function Error: " + err.message + "\nEnsure you deployed 'fetch-flutterwave' and set FLW_SECRET_KEY.");
+                alert("Edge Function Error: " + err.message);
             }
         }
 
-        // 3. Staff Management
+        // --- CEO GOAL OVERRIDE CONTROLS ---
+        function updateGoalRing(ngnRevenue, usdRevenue) {
+            // Rough conversion logic for visual display
+            const combinedRevenue = ngnRevenue + (usdRevenue * 1500); 
+            
+            let pct = (combinedRevenue / currentFinancialGoal) * 100;
+            if(pct > 100) pct = 100;
+            
+            document.getElementById('goalPercentage').innerText = pct.toFixed(1) + '%';
+            document.getElementById('goalCircle').style.strokeDasharray = `${pct}, 100`;
+            
+            // Format the text label nicely
+            let formattedGoal = (currentFinancialGoal / 1000000).toFixed(0) + 'M';
+            document.getElementById('currentGoalText').innerText = formattedGoal;
+        }
+
+        function openCeoGoalOverride() {
+            document.getElementById('ceoNewGoalInput').value = currentFinancialGoal;
+            document.getElementById('ceoGoalModal').classList.remove('hidden');
+        }
+
+        function executeCeoGoalOverride() {
+            const newGoal = parseInt(document.getElementById('ceoNewGoalInput').value);
+            if(newGoal > 0) {
+                currentFinancialGoal = newGoal;
+                // Re-sync to update the ring mathematically
+                syncFinancials(); 
+            }
+            document.getElementById('ceoGoalModal').classList.add('hidden');
+        }
+
+        // =========================================
+        // STAFF MANAGEMENT
+        // =========================================
         async function fetchRealStaff() {
-            const tbody = document.getElementById('staffTableBody');
+            const tbody = document.getElementById('staffTableBody'); 
             const { data, error } = await _supabase.from('staff_users').select('*');
             
             if (error || !data || data.length === 0) { 
@@ -1160,19 +1420,17 @@
             tbody.innerHTML = '';
             
             data.forEach(s => {
-                let badgeColor = 'text-slate-400 border-slate-500/20 bg-slate-500/10';
-                if(s.role === 'CEO') badgeColor = 'text-yellow-500 border-yellow-500/20 bg-yellow-500/10';
-                if(s.role === 'Admin') badgeColor = 'text-blue-400 border-blue-500/20 bg-blue-500/10';
-                if(s.role === 'Growth') badgeColor = 'text-purple-400 border-purple-500/20 bg-purple-500/10';
+                let badgeColor = 'text-slate-400 border-slate-500/20 bg-slate-500/10'; 
+                if(s.role === 'CEO') badgeColor = 'text-yellow-500 border-yellow-500/20 bg-yellow-500/10'; 
+                if(s.role === 'Admin') badgeColor = 'text-blue-400 border-blue-500/20 bg-blue-500/10'; 
+                if(s.role === 'Growth') badgeColor = 'text-purple-400 border-purple-500/20 bg-purple-500/10'; 
                 if(s.role === 'Infra') badgeColor = 'text-emerald-400 border-emerald-500/20 bg-emerald-500/10';
-
-                let actionHTML = '';
-                if(currentUserRole === 'CEO') {
-                    actionHTML = `<button onclick="revokeRealStaff('${s.id}')" class="action-btn text-red-400 hover:text-white bg-red-500/10 hover:bg-red-500 border border-red-500/30 px-3 py-1.5 rounded text-[10px] uppercase font-bold transition-colors">Revoke</button>`;
-                } else if(s.role !== 'CEO' && currentUserRole !== 'Investor') {
-                    actionHTML = `<button onclick="revokeRealStaff('${s.id}')" class="action-btn text-red-400 hover:text-white bg-red-500/10 hover:bg-red-500 border border-red-500/30 px-3 py-1.5 rounded text-[10px] uppercase font-bold transition-colors">Revoke</button>`;
+                
+                let actionHTML = ''; 
+                if(currentUserRole === 'CEO' || (s.role !== 'CEO' && currentUserRole !== 'Investor')) { 
+                    actionHTML = `<button onclick="revokeRealStaff('${s.id}')" class="action-btn text-red-400 hover:text-white bg-red-500/10 hover:bg-red-500 border border-red-500/30 px-3 py-1.5 rounded text-[10px] uppercase font-bold transition-colors">Revoke</button>`; 
                 }
-
+                
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-800/30 border-b border-slate-800/50">
                         <td class="p-4"><div class="font-medium text-white">${s.email}</div></td>
@@ -1186,58 +1444,49 @@
         
         async function inviteRealStaff() {
             const email = document.getElementById('inviteStaffEmail').value; 
-            const role = document.getElementById('inviteStaffRole').value;
+            const role = document.getElementById('inviteStaffRole').value; 
             
-            if(!email) {
-                return alert("Email required.");
-            }
+            if(!email) return alert("Email required.");
             
             const btn = document.getElementById('btnInviteStaff'); 
-            btn.innerText = "ADDING & EMAILING..."; 
+            btn.innerText = "ADDING..."; 
             btn.disabled = true;
-
-            const tempPassword = "MailvahOperative2026!";
-            const { data: authData, error: authError } = await _supabase.auth.signUp({
-                email: email,
-                password: tempPassword
-            });
-
-            if (authError) {
-                alert("Auth Engine Error: " + authError.message);
-                btn.disabled = false; 
-                btn.innerText = "ADD OPERATIVE";
-                return;
-            }
-
-            const { error: dbError } = await _supabase.from('staff_users').insert([{ 
-                id: authData.user.id,
-                email: email, 
-                role: role, 
-                status: 'Active' 
-            }]);
             
+            const tempPassword = "MailvahOperative2026!"; 
+            const { data: authData, error: authError } = await _supabase.auth.signUp({ email: email, password: tempPassword });
+            
+            if (authError) { 
+                alert("Error: " + authError.message); 
+                btn.disabled = false; 
+                btn.innerText = "ADD OPERATIVE"; 
+                return; 
+            }
+            
+            const { error: dbError } = await _supabase.from('staff_users').insert([{ id: authData.user.id, email: email, role: role, status: 'Active' }]);
             btn.disabled = false; 
             btn.innerText = "ADD OPERATIVE";
             
             if (dbError) {
-                alert("Database Error: " + dbError.message); 
-            } else {
-                alert(`Operative Added Successfully!\n\nA confirmation email was sent to: ${email}\n\nTemporary Login Password: ${tempPassword}`);
-                document.getElementById('inviteStaffEmail').value = '';
-                fetchRealStaff();
+                alert("Error: " + dbError.message); 
+            } else { 
+                alert(`Operative Added!\nEmail: ${email}\nTemp Pass: ${tempPassword}`); 
+                document.getElementById('inviteStaffEmail').value = ''; 
+                fetchRealStaff(); 
             }
         }
         
-        async function revokeRealStaff(id) {
-            if(currentUserRole === 'Investor') return;
+        async function revokeRealStaff(id) { 
+            if(currentUserRole === 'Investor') return; 
             if(confirm("Permanently revoke access for this operative?")) {
-                await _supabase.from('staff_users').delete().eq('id', id);
+                await _supabase.from('staff_users').delete().eq('id', id); 
             }
         }
 
-        // 4. Support Tickets
+        // =========================================
+        // SUPPORT TICKETS & BROADCASTS
+        // =========================================
         async function fetchSupportTickets() {
-            const tbody = document.getElementById('supportTableBody');
+            const tbody = document.getElementById('supportTableBody'); 
             const { data, error } = await _supabase.from('support_tickets').select('*');
             
             if (error || !data || data.length === 0) { 
@@ -1246,20 +1495,17 @@
             }
             
             tbody.innerHTML = '';
-            
             data.forEach(t => {
-                let actionHTML = '';
+                let actionHTML = ''; 
                 if(currentUserRole !== 'Investor') {
                     actionHTML = `<button onclick="closeRealTicket('${t.id}')" class="action-btn bg-slate-800 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest border border-slate-700 transition-colors">Mark Resolved</button>`;
                 }
-
+                
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-800/30 border-b border-slate-800/50">
                         <td class="p-4"><div class="font-bold text-white">${t.user_email}</div></td>
                         <td class="p-4"><div class="font-medium text-amber-400">${t.issue}</div></td>
-                        <td class="p-4 text-center">
-                            <span class="bg-red-500/10 text-red-400 border border-red-500/20 text-[9px] px-2 py-1 rounded uppercase tracking-widest font-bold">${t.status}</span>
-                        </td>
+                        <td class="p-4 text-center"><span class="bg-red-500/10 text-red-400 border border-red-500/20 text-[9px] px-2 py-1 rounded uppercase tracking-widest font-bold">${t.status}</span></td>
                         <td class="p-4 text-right">${actionHTML}</td>
                     </tr>
                 `;
@@ -1269,56 +1515,49 @@
         async function closeRealTicket(id) { 
             await _supabase.from('support_tickets').update({ status: 'Resolved' }).eq('id', id); 
         }
-
-        async function pushRealBroadcast() {
+        
+        async function pushRealBroadcast() { 
             await _supabase.from('system_broadcasts').insert([{ 
                 message: document.getElementById('broadcastMessage').value, 
                 type: document.getElementById('broadcastType').value, 
                 created_at: new Date() 
-            }]);
+            }]); 
             
             document.getElementById('broadcastMessage').value = ''; 
-            alert('Broadcast Sent!');
+            alert('Broadcast Sent!'); 
         }
 
-        // --- SUPABASE WEBSOCKET SUBSCRIPTIONS ---
+        // =========================================
+        // REALTIME SUBSCRIPTIONS
+        // =========================================
         function initRealtimeSubscriptions() {
             _supabase.channel('admin_live_data')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'user_credits' }, payload => { 
-                    fetchRealUsers(); 
-                })
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'staff_users' }, payload => { 
-                    fetchRealStaff(); 
-                })
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'support_tickets' }, payload => { 
-                    fetchSupportTickets(); 
-                })
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'dunning_queue' }, payload => { 
-                    fetchFinanceData(); 
-                })
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'promo_codes' }, payload => { 
-                    fetchFinanceData(); 
-                })
-                .subscribe((status) => {
-                    if(status === 'SUBSCRIBED') {
-                        document.getElementById('realtimeStatus').innerText = 'Supabase Sync: ACTIVE';
-                        document.getElementById('realtimeStatus').classList.replace('text-sky-400', 'text-emerald-400');
-                    }
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'user_credits' }, () => { fetchRealUsers(); })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'staff_users' }, () => { fetchRealStaff(); })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'support_tickets' }, () => { fetchSupportTickets(); })
+                .subscribe((status) => { 
+                    if(status === 'SUBSCRIBED') { 
+                        document.getElementById('realtimeStatus').innerText = 'Supabase Sync: ACTIVE'; 
+                        document.getElementById('realtimeStatus').classList.replace('text-sky-400', 'text-emerald-400'); 
+                    } 
                 });
         }
 
-        // Auto-login check
+        // =========================================
+        // ON-LOAD AUTH CHECK
+        // =========================================
         _supabase.auth.getSession().then(async ({ data: { session } }) => {
             if (session) { 
-                
-                // Fetch RBAC Role from Database on auto-login
                 let resolvedRole = 'Admin'; 
                 const { data: staffData } = await _supabase.from('staff_users').select('role').eq('email', session.user.email).single();
-                if (staffData && staffData.role) resolvedRole = staffData.role;
-                else if (session.user.email.includes('founder') || session.user.email === 'admin@mailvah.com' || session.user.email === 'ceo@mailvah.com') resolvedRole = 'CEO';
                 
-                enforceRBAC(resolvedRole);
-
+                if (staffData && staffData.role) {
+                    resolvedRole = staffData.role; 
+                } else if (session.user.email.includes('founder') || session.user.email === 'admin@mailvah.com' || session.user.email === 'ceo@mailvah.com') {
+                    resolvedRole = 'CEO';
+                }
+                
+                enforceRBAC(resolvedRole); 
                 document.getElementById('adminAuthContainer').classList.add('hidden'); 
                 document.getElementById('staffIdentityDisplay').innerText = `${resolvedRole}: ${session.user.email}`; 
                 
